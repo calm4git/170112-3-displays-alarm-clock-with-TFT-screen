@@ -8,9 +8,9 @@ Use your current Arduino IDE to compile the Code.
 You requiere to have the following librarys at hand:
 
 * DS1307  from http://www.RinkyDinkElectronics.com/
-*Streaming library from http://arduiniana.org/libraries/streaming/ for strings concatenation
-*ucglib 
-*TimerOne 
+* Streaming library from http://arduiniana.org/libraries/streaming/ for strings concatenation
+* ucglib 
+* TimerOne 
 
 ### Prerequisites
 
