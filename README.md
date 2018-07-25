@@ -7,10 +7,10 @@ Software for the 3 display alarm-clock with TFT screen
 Use your current Arduino IDE to compile the Code. 
 You requiere to have the following librarys at hand:
 
-Markup : * DS1307  from http://www.RinkyDinkElectronics.com/
-Markup : *Streaming library from http://arduiniana.org/libraries/streaming/ for strings concatenation
-Markup : *ucglib 
-Markup : *TimerOne 
+* DS1307  from http://www.RinkyDinkElectronics.com/
+*Streaming library from http://arduiniana.org/libraries/streaming/ for strings concatenation
+*ucglib 
+*TimerOne 
 
 ### Prerequisites
 
