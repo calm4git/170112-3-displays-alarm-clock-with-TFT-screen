@@ -27,6 +27,8 @@
 //#define DEBUGPRINT( X ) Serial.print( X ) 
 #define DEBUGPRINT( X )  do{ }while( 1 == 0) 
 
+#define MAX_BEEP_TIME_MIN  ( 15 )
+
 // Example :  lcd << ((h<10)?"0":"") << h << ":" << ((m<10)?"0":"") << m ; endl; // for leading 0 in time format
 // keep the ports 0 and 1 free for Rx and Tx
 
@@ -112,10 +114,9 @@ typedef struct{
   uint8_t Reserved:5;
   uint8_t SnoozeHour;
   uint8_t SnoozeMinute;
-  uint8_t AlertOffMin;
-  uint8_t AlertOffHr;
 } AlertBits_t;
 
+volatile uint16_t BeepRunCnt;
 volatile AlertBits_t AlertBits;
 
 // Alarm time variables
@@ -547,6 +548,22 @@ float backlight_val=0;
 
 
 void AlertProcess(){
+
+   if( BeepRunCnt > ( 60 * MAX_BEEP_TIME_MIN ) ){
+         AlertBits.BeepOn=LOW ;
+         AlertBits.SnoozeOn=LOW;
+         AlertBits.Reserved=0;
+         AlertBits.SnoozeHour=0;
+         AlertBits.SnoozeMinute=0;  
+         
+   }
+
+   if(AlertBits.BeepOn==LOW){
+     while( BeepRunCnt != 0){
+              BeepRunCnt=0;
+     }
+   }
+   
   
   // ============================= PASSAGE EN MODE ARRET SONNERIE =============================
   // if key A pressed "-", stop the beeper ringing and NO snooze
@@ -574,47 +591,14 @@ void AlertProcess(){
   {
     if(previousMin != myMin){
       AlertBits.BeepOn = HIGH;
-
-      if(UserAlarm[0].Minute+15>59){
-        AlertBits.AlertOffMin = UserAlarm[0].Minute+ 15 - 60 ;
-        if(UserAlarm[0].Hour==23)
-            AlertBits.AlertOffHr=0 ;
-        } else {
-            AlertBits.AlertOffHr=UserAlarm[0].Hour+1;
-        }
-      } else {
-            AlertBits.AlertOffMin = UserAlarm[0].Minute+ 15 ;
-      }
-    
-      
     } 
-
+  }
 
   if(  (AlertBits.SnoozeHour  == myHour) && (AlertBits.SnoozeMinute == myMin) && (AlertBits.SnoozeOn==HIGH) ){
      if(previousMin != myMin){
-      AlertBits.BeepOn = HIGH;
-
-       if(UserAlarm[0].Minute+15>59){
-        AlertBits.AlertOffMin = UserAlarm[0].Minute+ 15 - 60 ;
-        if(UserAlarm[0].Hour==23)
-            AlertBits.AlertOffHr=0 ;
-        } else {
-            AlertBits.AlertOffHr=UserAlarm[0].Hour+1;
-        }
-      } else {
-        AlertBits.AlertOffMin = UserAlarm[0].Minute+ 15 ;
-      }
-
+         AlertBits.BeepOn = HIGH;
     } 
-  
-
-
-  if( ( AlertBits.AlertOffHr  == myHour ) && (AlertBits.AlertOffMin   == myMin) ){
-    AlertBits.BeepOn = LOW;
-    AlertBits.SnoozeOn = LOW;
-  } 
- 
-  
+  }
 
   // ============================= TURN IN SNOOZE MODE ========================================
   // Pressing the B "+" key keeps the snooze mode : stop the current alarm but keeps the following alarms
@@ -649,17 +633,22 @@ void AlertProcess(){
 
 void Buzzer( ) {
    if (AlertBits.BeepOn==HIGH) {
+       /* We need a minute counter, or here a second counter ..... */
+       if(BeepRunCnt<0xFFFF){
+          BeepRunCnt++;
+       }
+
        if (ToggeleBeper == true) {
         ToggeleBeper = false;
         /* Dim Backlight to save power */
         tone(A0, 1500);
-      }
-      else {
+      } else {
         ToggeleBeper = true;
         noTone(A0);
       }
     } else {
       noTone(A0);
+      BeepRunCnt=0;
   }
 }
 
@@ -872,10 +861,10 @@ void AffAlarm(bool refresh) /* Used to turn Alram on and off */
     }
 
     if(AlertBits.SnoozeOn==HIGH){
-      lcd.setPrintPos( 255, 10);
-      lcd << "Snooze" << endl;
+      lcd.setPrintPos( 235, 10);
+      lcd << "Snooze     " << endl;
       
-      lcd.setPrintPos( 255, 25);
+      lcd.setPrintPos( 235, 25);
       lcd << ((AlertBits.SnoozeHour < 10) ? "0" : "") << AlertBits.SnoozeHour  << ":" << ((AlertBits.SnoozeMinute < 10) ? "0" : "") << AlertBits.SnoozeMinute << endl;
       
     } else {
@@ -883,10 +872,10 @@ void AffAlarm(bool refresh) /* Used to turn Alram on and off */
 
         
       } else {
-        lcd.setPrintPos( 255, 10);
+        lcd.setPrintPos( 235, 10);
         lcd << Day[UserAlarm[0].Day] << endl;
         
-        lcd.setPrintPos( 255, 25);
+        lcd.setPrintPos( 235, 25);
         lcd << ((UserAlarm[0].Hour < 10) ? "0" : "") << UserAlarm[0].Hour << ":" << ((UserAlarm[0].Minute < 10) ? "0" : "") << UserAlarm[0].Minute << endl;
       }
     }
@@ -1397,7 +1386,7 @@ void AlertHelper(){
 
 void PrintCopyright(){
     lcd.setPrintPos( 5, 236);    
-    lcd.print(F("  Author: O.CROISET   2017 Rev2.5"));
+    lcd.print(F(" Author: O.CROISET 2017 Rev:2.6.1"));
 }
 
 void SettingAlert()
