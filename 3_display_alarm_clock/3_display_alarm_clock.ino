@@ -60,7 +60,7 @@ Ucglib_ILI9341_18x240x320_HWSPI lcd( 8,   5,   7);
 #define EEPALERTONOFF_ADDR   ( 513 )
 #define LDR_CAL_OFFSET       ( 1000)
 
-
+#define EEPDISPLAYROTATAION  ( 514 )
 
 
 //======================================= Variables for the DS1302
@@ -85,6 +85,19 @@ typedef struct{
   uint16_t LDR_DARK;
   uint16_t INV_LDR_DARK;
 }LDR_CAL_t;
+
+typedef enum {
+  DISPLAY_AUTO=0,
+  DISPLAY_ONE,
+  DISPLAY_TWO,
+  DISPLAY_THREE,
+  DISPLAY_SCREEN_CNT
+  
+} display_screen_t;
+
+typedef struct{
+  display_screen_t displaymode;
+} display_settings_t;
 
 
 /* Why the hell float ? */
@@ -152,6 +165,7 @@ volatile byte Button;                  // key pressed
 Time t_temp;
 
 volatile LDR_CAL_t LDR_Calibration; /* LDR Calibration Values for the Devices */
+volatile display_settings_t displaysettings;
 
 //char Month[nombre de chaines][length of strings, add 1 for the final \0 ]
 
@@ -241,6 +255,11 @@ void setup()
      EEPROM.write( EEPLIGHT_ADDR, 0 );
   }
 
+  displaysettings.displaymode = EEPROM.read(EEPDISPLAYROTATAION);
+  if( displaysettings.displaymode >= DISPLAY_SCREEN_CNT ){
+    EEPROM.write( EEPLIGHT_ADDR, DISPLAY_AUTO );
+  }
+
   uint8_t* LDRCalPtr;
   LDRCalPtr=(uint8_t*)&LDR_Calibration;
   for(uint8_t i=0;i< ( sizeof( LDR_CAL_t ));i++){
@@ -278,7 +297,7 @@ void setup()
   AlertBits.BeepOn=LOW;
   /* Load next alert */
   GetNextAlert(true);
-
+  last_screen=255;
 }
 
 /* we need to presace it to 1hz for the button i guesst ....*/
@@ -323,14 +342,47 @@ void loop()
   previousHour = myHour;
   previousDate = myDate;
 
- RTC_ReadTime();
+  RTC_ReadTime();
+
+  /* This will be used to determine which screen / display to show  */
+  uint8_t screen = 0;
+
+  /* If we are not running in auto mode we need to chage thi here a bit */
+  switch ( displaysettings.displaymode ){
+    case DISPLAY_AUTO:{
+      screen = ( myHour % 3 );
+          if( screen > 2 ){
+            screen = 0;
+          }
+    } break;
+  
+    case DISPLAY_ONE:{
+      screen = 0;
+    } break;
+  
+    
+    case DISPLAY_TWO:{
+      screen = 1;
+    } break;
+    
+    case DISPLAY_THREE: {
+      screen = 2;
+    } break;
+    
+    default:{
+      screen = 0;
+      displaysettings.displaymode = DISPLAY_AUTO;
+    }    
+  }
+  
+  
 
   // ========================= TURNING DISPLAY =========================
-  if (myHour != previousHour) {
+  if ( (myHour != previousHour) || ( screen != last_screen ) ) {
     lcd.clearScreen();  // Erase the screen before each clock display change
   }
   // ======================= CadranAiguilles : selected at 0, 3, 6, 9, 12, 15, 18, 21, 24 hour
-  if ((myHour % 3) == 0) {
+  if ( screen == 0) {
     if(last_screen != 0){
       refreshScreen=true;
       last_screen=0;
@@ -349,7 +401,7 @@ void loop()
   }
 
   // ======================= Cadran2 : selected at 1, 4, 7, 10, 13, 16, 19, 22 hour
-  if ((myHour % 3) == 1) {
+  if ( screen == 1) {
     Color_t Color;
     if(last_screen != 1){
       refreshScreen=true;
@@ -389,7 +441,7 @@ void loop()
 
   // ======================= SevenSegments : selected at 2, 5, 8, 11, 14, 17, 20, 23 hour
   // affiche le cadre des secondes
-  if ((myHour % 3) == 2)
+  if ( screen == 2)
   {
     if(last_screen != 2){
       refreshScreen=true;
@@ -449,7 +501,16 @@ void loop()
      AlertBits.SnoozeMinute=0;
      SettingAlert();
       /* Alert reset */
-    }   
+    } 
+
+  if( A >  DureeAppui  ){
+     AlertBits.BeepOn=LOW;
+     AlertBits.SnoozeOn=LOW;
+     AlertBits.Reserved=0;
+     AlertBits.SnoozeHour=0;
+     AlertBits.SnoozeMinute=0;
+     SettingsDisplay(); 
+  }
    
    AlertProcess();
 
@@ -1386,7 +1447,7 @@ void AlertHelper(){
 
 void PrintCopyright(){
     lcd.setPrintPos( 5, 236);    
-    lcd.print(F(" Author: O.CROISET 2017 Rev:2.6.1"));
+    lcd.print(F(" Author: O.CROISET 2017 Rev:2.6.3"));
 }
 
 void SettingAlert()
@@ -1860,6 +1921,71 @@ void SettingTime(  ){
   refreshScreen = true;
   GetNextAlert(true);
 }
+
+void SettingsDisplay(  ){
+  uint16_t PrevA=0xFFFF;
+  lcd.clearScreen();
+  HeadlineHelper();
+  PrintCopyright();
+
+  lcd.setPrintPos(  10, 70);  lcd.print(F("   Displaymode    :         "));
+
+  
+  
+
+  do
+  {
+    lcd.setColor ( 0, 0, 255);                          // Blue
+    lcd.setPrintPos(  10, 70);  lcd.print(F("   Displaymode :             "));
+    displaysettings.displaymode = SettingHelper1( displaysettings.displaymode );
+    displaysettings.displaymode = SettingHelper2(displaysettings.displaymode, DISPLAY_THREE, DISPLAY_AUTO);
+   
+    if (displaysettings.displaymode != PrevA)
+    {
+     
+      delay(50);
+      lcd.setColor ( 0,  0, 0);                           //
+      lcd.drawBox (160, 50, 140 , 20);                 // to erase the previous characters
+      lcd.setColor ( 0, 255, 0);
+      lcd.setPrintPos( 160, 70); 
+        switch(displaysettings.displaymode){
+          case DISPLAY_AUTO: {
+            lcd.print(F("Automatic"));
+          } break;
+                
+          case DISPLAY_ONE: {
+            lcd.print(F("clock face 1"));
+          } break;
+
+          case DISPLAY_TWO: {
+             lcd.print(F("clock face 2"));
+          } break;
+          
+          case DISPLAY_THREE: {
+             lcd.print(F("clock face 3"));
+          } break;
+
+          default:{
+             displaysettings.displaymode = DISPLAY_AUTO;
+             
+          } break;
+        }
+          
+         
+      PrevA = displaysettings.displaymode;
+    }
+  }
+  while (Button != 3  && Button != 4);                                 // while OK not pressed, else continue
+  
+  Button = 0; C = 0;
+  lcd.setColor ( 255, 255, 255);                        // Reset to white
+  
+  EEPROM.write( EEPDISPLAYROTATAION, displaysettings.displaymode );
+  lcd.clearScreen();
+  refreshScreen = true;
+  GetNextAlert(true);
+}
+
 
 void Backlight_Cal_Sync(){
   uint8_t* u8Ptr;
