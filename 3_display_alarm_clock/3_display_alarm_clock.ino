@@ -1447,7 +1447,7 @@ void AlertHelper(){
 
 void PrintCopyright(){
     lcd.setPrintPos( 5, 236);    
-    lcd.print(F(" Author: O.CROISET 2017 Rev:2.6.3"));
+    lcd.print(F(" Author: O.CROISET 2017 Rev:2.6.5"));
 }
 
 void SettingAlert()
