@@ -378,8 +378,9 @@ void loop()
   
 
   // ========================= TURNING DISPLAY =========================
-  if ( (myHour != previousHour) || ( screen != last_screen ) ) {
+  if ( screen != last_screen ) {
     lcd.clearScreen();  // Erase the screen before each clock display change
+    refreshScreen=true;
   }
   // ======================= CadranAiguilles : selected at 0, 3, 6, 9, 12, 15, 18, 21, 24 hour
   if ( screen == 0) {
