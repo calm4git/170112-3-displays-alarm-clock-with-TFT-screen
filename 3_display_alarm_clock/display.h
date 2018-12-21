@@ -1,3 +1,6 @@
+#ifndef _DISPLAY_H_
+#define _DISPLAY_H_
+
 // Copyright (C) 2016 Olivier CROISET. All rights reserved
 // Copyright (C) 2017,2018 Elektor Labs (edited). All rights reserverd
 /***************************************************************/
@@ -6,62 +9,47 @@
 /*                  edited by Elektor Labs 2017(C)             */
 /***************************************************************/
 
-// http://www.RinkyDinkElectronics.com/
 // https://github.com/olikraus/lcdlib/wiki/reference
-// http://www.proftnj.com/RGB3.htm  for RGB colors definitions
 // http://arduiniana.org/libraries/streaming/ for strings concatenation
-// Using TimerOne Library
-// Consumption:
-// ILI 9341     : 25 mA
+// ILI 9341     :  25mA
 // Screen LEDs  :  5 mA
-// AtMega328    :  7 mA
+// ESP8266      : TBDmA
 
-#include <DS1302.h>
-#include <SPI.h>
+#include <math.h>
 #include <Streaming.h>
 #include "Ucglib.h"
-#include "EEPROM.h"
-#include "TimerOne.h"
+#include "timecore.h"
+
+unsigned long lastUploadTime = 0;
+unsigned long lastMeasureTime = 0;
+unsigned long lastAPConnection = 0;
+unsigned long lastAlarmSound = 0;
 
 /* IF we need activ printing */
 //#define DEBUGPRINT( X ) Serial.print( X ) 
 #define DEBUGPRINT( X )  do{ }while( 1 == 0) 
-
+    
 #define MAX_BEEP_TIME_MIN  ( 15 )
 
-// Example :  lcd << ((h<10)?"0":"") << h << ":" << ((m<10)?"0":"") << m ; endl; // for leading 0 in time format
-// keep the ports 0 and 1 free for Rx and Tx
-
-// DS1302 Initialisation
-// DS1302    CE IO SCLK
-// DS1302 rtc(2, 3, 4); // Arduino ports
-DS1302 rtc(  4,    3, 2);
-/* If you like to use an other watch here, you need to change the library here */
-
 // Init the TFT screen               dc  cs  reset
-Ucglib_ILI9341_18x240x320_HWSPI lcd( 8,   5,   7);
-// The LCD uses the AVR HW SPI ( MOSI, SCK ) and also the three given pins
-// MISO is not used, this means we can't read data back from the lcd
+Ucglib_ILI9341_18x240x320_HWSPI lcd(/*cd=*/ D3, /*cs=*/ D4 /*reset=*/ /*D0*/);
 
-// Keys for time setting    A4    A3    A2
-//                         "-"   "+"   "OK"
+typedef enum {
+  released=0,
+  pressed,
+  repeated_pressed,
 
-#define ToucheA A4            // Key A = Left "-"
-#define ToucheB A3            // Key B = Right "+"    
-#define ToucheC A2            // Key C = Ok
-#define ToucheD A5            // Key D = A ^ SEL
-/* As we don't change this during runtime we can use a define to save RAM and code */
-#define DureeAppui ( 2 )           // Push duration on the keys
+} buttonstate_t;
 
-#define Beeper A0             // Beeper port
+typedef enum {
+  KEY_A=0,
+  KEY_B,
+  KEY_C,
+  KEY_D,
+  KEY_COUNT
+} button_t;
 
-/* This is for some eeprom positions */
-#define EEPLIGHT_ADDR        ( 512 )
-#define EEPALERTONOFF_ADDR   ( 513 )
-#define LDR_CAL_OFFSET       ( 1000)
-
-#define EEPDISPLAYROTATAION  ( 514 )
-
+buttonstate_t ButtonStateArray[KEY_COUNT][2];
 
 //======================================= Variables for the DS1302
 int16_t myYear;
@@ -86,19 +74,15 @@ typedef struct{
   uint16_t INV_LDR_DARK;
 }LDR_CAL_t;
 
-typedef enum {
-  DISPLAY_AUTO=0,
-  DISPLAY_ONE,
-  DISPLAY_TWO,
-  DISPLAY_THREE,
-  DISPLAY_SCREEN_CNT
-  
-} display_screen_t;
-
-typedef struct{
-  display_screen_t displaymode;
-} display_settings_t;
-
+typedef struct {
+uint8_t hour;
+uint8_t min;
+uint8_t sec;
+uint8_t dow;
+uint16_t year;
+uint8_t mon;
+uint8_t date;
+} timeval_t;
 
 /* Why the hell float ? */
 float angleSec = 0;           // second hand angle
@@ -155,17 +139,10 @@ boolean SwitchAlarm;
 boolean ToggeleBeper = true;
 boolean refreshScreen = true;
 
-// for the key scanning
-volatile uint8_t A;                        // nb appuis sur A
-volatile uint8_t B;                        // nb appuis sur B
-volatile uint8_t C;                        // nb appuis sur C
-volatile uint8_t D;                        // nb appuis sur D
-volatile byte Button;                  // key pressed
 
-Time t_temp;
+timeval_t t_temp;
 
 volatile LDR_CAL_t LDR_Calibration; /* LDR Calibration Values for the Devices */
-volatile display_settings_t displaysettings;
 
 //char Month[nombre de chaines][length of strings, add 1 for the final \0 ]
 
@@ -173,22 +150,12 @@ volatile display_settings_t displaysettings;
 
 
 
-// French
-//char Month[][10] = {"Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"};
-//char Day[][13] =   {"Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"};
 
 // English
  char Month[][10]    = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
  char Day[][13]    =    {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Mon-Fri", "Never"};
  char OFF_ON[][5]    = {"Auto","Max","Med","Low"};
 
-// German
-// char Month[][10] = {"Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"};
-// char Day[][13] =   {"Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"};
-
-// Italian
-// char Month[][10] = {"Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"};
-// char Day[][13] =   {"Lunedi", "Martedi", "Mercoledi", "Giovedi", "Venerdi", "Sabato", "Domenica"};
 
 // variables for the LED dimming
 //int16_t light;   // little variable, but great comfort for people who need complete darkness !
@@ -196,194 +163,181 @@ volatile bool SecondTick;
 volatile bool MinuteTick;
 volatile int8_t last_screen=-1;
 volatile uint8_t auto_dimmer=0;
-/*SETUP*/
-void setup()
-{
-  pinMode(ToucheA, INPUT_PULLUP);                 // sets the digital pin 5 as input
-  pinMode(ToucheB, INPUT_PULLUP);                 // sets the digital pin 6 as input
-  pinMode(9, OUTPUT);                             // TFT LED setting
-  pinMode(ToucheC, INPUT_PULLUP);                 // sets the digital pin 7 as input
-  pinMode(A0, OUTPUT);                            // beeper
-  pinMode(A1, INPUT_PULLUP);                      // LDR for screen LEDs control
-  pinMode(10, INPUT_PULLUP);                        
-  pinMode(ToucheD, INPUT_PULLUP);                 //AlarmSwitch ( Multipurpose)
-  
-  
-  // 3,3 V; for the light sensor, for display dimming
-  // connect AVCC to Vcc (+ 3,3 Volts)
-  // connect AREF to Vcc (+ 3,3 Volts)
-  analogReference(DEFAULT);  // = 3,3 volts
-  /* Be aware that we are running at 12MHz and this seems done for 16MHz */
 
-  Timer1.initialize(1000);         // initialize timer1, and set it to 1000Hz
-  Timer1.pwm(9, 512);                // setup pwm on pin 9, 50% duty cycle
-  Timer1.attachInterrupt(callback);  // attaches callback() as a timer overflow interrupt
-  // =========================================== end of the Timer1 setting for the key scan
-  
+void  Backlight( void );
+void AiguilleSecondes( void ) ;
+void CadranBlanc( );
+void CadranRond();
+void AfficherDate();
+void Cadran2( bool );
+void SecondeSecteur(Color_t Color);
+void Secondes( void );
+void Colon( void );
+void CadranSecondes ( void );
+void SevenSegments(bool);    
+bool GetNextAlert(bool refresh);
+void AffAlarm( bool ) ;
+void PointsHelper( uint8_t Val, int16_t offset, Color_t Color);
+void PointsColumn( void );
+void Points0(uint16_t Numdigit, Color_t Color);
+void Points1(uint16_t Numdigit, Color_t Color);
+void Points2(uint16_t Numdigit, Color_t Color);
+void Points3(uint16_t Numdigit, Color_t Color);
+void Points4(uint16_t Numdigit, Color_t Color);
+void Points5(uint16_t Numdigit, Color_t Color);
+void Points6(uint16_t Numdigit, Color_t Color);
+void Points7(uint16_t Numdigit, Color_t Color);
+void Points8(uint16_t Numdigit, Color_t Color);
+void Points9(uint16_t Numdigit, Color_t Color);
+
+int16_t SettingHelper1(int16_t Aspect) ;
+int8_t SettingHelper2(int8_t Aspect, int8_t timeAspect1, int8_t timeAspect2) ;
+
+
+
+void Segment( uint8_t idx, uint16_t offset);
+
+void InitDisplay(){
   // Init of the screen ILI9341
   lcd.begin(UCG_FONT_MODE_SOLID);
   lcd.clearScreen();
   lcd.setRotate90();                             // Rotate in landscape format, connector on the right side
+  lcd.setFont  (ucg_font_9x15_tr);               // Font select
+  /* Show connect to WiFi Screen */
+  lcd.setPrintPos( 0, 10);
+  lcd.setColor(155, 155, 155);  // dimmed if alarm OFF
+  lcd.setPrintPos( 0, 24);
+  lcd.clearScreen();
 
-  // Setting of the values stored in the DS1302
-  // Set the clock to run-mode, and disable the write protection
-  rtc.halt(false);                               // for clock validation
-  rtc.writeProtect(false);
+  
+}
+
+uint8_t Touches ( ){
+  return 0;
+}
+
+void displayrefesh(){
+  refreshScreen=true;
+}
+
+extern Timecore timec;
+
+void RTC_ReadTime(){
+
+ /* Adapt this to yout RTC if needed */
+ tmElements_t time_element;
+ breakTime(timec.GetLocalTime(),time_element);
  
+  myYear  = time_element.Year+1970;
+  myMonth = time_element.Month;
+  myDate  = time_element.Day;
+  if(time_element.Wday>0){
+    time_element.Wday--;
+  } else {
+    time_element.Wday=6;
+  }
+  myDow   = time_element.Wday;
+  myHour  = time_element.Hour;
+  myMin   = time_element.Minute;
+  mySec   = time_element.Second;
+
+}
+
+
+void ButtonScanTask( ){
+  /* This will read the Button and prodice differnt states and events */
+
+  for(uint8_t i=0;i<KEY_COUNT;i++){
+    
+  }
+ 
+}
+
+buttonstate_t GetButtonState ( button_t Button ) {
+  
+  buttonstate_t Result = released;
+  switch(Button){
+    case KEY_A:{
+      
+    } break;
+
+    case KEY_B:{
+      
+    } break;
+
+    case KEY_C:{
+      
+    } break;
+
+    case KEY_D:{
+      
+    } break;
+
+    default:{
+      
+    }break;
+    
+  }
+  
+  
+  return Result;
+}
+
+
+void SetupDisplay(){
   UserAlarm[0].Hour=0;
   UserAlarm[0].Minute=0;
   UserAlarm[0].Day=8;
+
+  RTC_ReadTime(); /* This syncs the time to the display */
   
-  /* At this point we should load the settings from EEPROM if they are valid */
-  uint8_t* AlPtr;
-  AlPtr=(uint8_t*)&UserAlarm[1];
-  for(uint8_t i=0;i< ( sizeof(UserAlarm) - sizeof(Alarm_t) );i++){
-      *AlPtr=EEPROM.read(i);
-      AlPtr++;
-  }
-  for(uint8_t i=0; i < ( sizeof(UserAlarm)/sizeof(Alarm_t) ) ; i++){
-      if( (UserAlarm[i].Hour>23) || (UserAlarm[i].Minute>59) || (UserAlarm[i].Day>8) ){
-        UserAlarm[i].Hour=0;
-        UserAlarm[i].Minute=0;
-        UserAlarm[i].Day=8;
-      }
-  }
-  /* We need to load some settings */
-  auto_dimmer = EEPROM.read( EEPLIGHT_ADDR );
-  if(auto_dimmer > 4){
-    auto_dimmer = 0;
-     EEPROM.write( EEPLIGHT_ADDR, 0 );
-  }
-
-  displaysettings.displaymode = EEPROM.read(EEPDISPLAYROTATAION);
-  if( displaysettings.displaymode >= DISPLAY_SCREEN_CNT ){
-    EEPROM.write( EEPLIGHT_ADDR, DISPLAY_AUTO );
-  }
-
-  uint8_t* LDRCalPtr;
-  LDRCalPtr=(uint8_t*)&LDR_Calibration;
-  for(uint8_t i=0;i< ( sizeof( LDR_CAL_t ));i++){
-      *LDRCalPtr=EEPROM.read(i+LDR_CAL_OFFSET);
-      LDRCalPtr++;
-  }
-
-  if(LDR_Calibration.LDR_BRIGHT != (~LDR_Calibration.INV_LDR_BRIGHT) ){
-    /* Brightvalue damaged */
-    auto_dimmer=1;
-    EEPROM.write( EEPLIGHT_ADDR, 1 );
-  }
-
-  if(LDR_Calibration.LDR_DARK != (~LDR_Calibration.INV_LDR_DARK) ){
-    /* Brightvalue damaged */
-    auto_dimmer=1;
-    EEPROM.write( EEPLIGHT_ADDR, 1 );
-    
-  }
-
-
-  
-
-  /* We need to make sure the calibration was done */
-
-  SwitchAlarm = EEPROM.read( EEPALERTONOFF_ADDR );
-   
-  RTC_ReadTime();
-  
-  lcd.setFont  (ucg_font_9x15_tr);               // Font select
-  Serial.begin (250000);                         //  = 882 octets
-  Serial.println (F("Start of Watch"));
-  DEBUGPRINT( F(".") );
   refreshScreen = true;
   AlertBits.BeepOn=LOW;
   /* Load next alert */
   GetNextAlert(true);
-  last_screen=255;
+  
+
 }
 
-/* we need to presace it to 1hz for the button i guesst ....*/
-/* We use 100Hz */
+void pinballscore( uint32_t points ){
 
-void callback()
-{
-   static uint8_t prescale_touches = 0;
-   static uint8_t prescaler_buzzer=0;
+
    
-   if(prescale_touches>=10){
-      Button = Touches();
-      prescale_touches=0;
-      prescaler_buzzer++;
-    } else {
-      prescale_touches++;
-    }
-    
-  if(prescaler_buzzer>=100){
-    Buzzer();  
-    prescaler_buzzer=0;
-  }
 }
+
 
 /*==================================================*/
 /*                 MAIN LOOP                        */
 /*==================================================*/
-void loop()
+void DisplayTask()
 {
+  
   if(previousSec != mySec){
     SecondTick=true;
     Backlight();
+    //Serial.println(".");
       
    } 
 
      
   if(previousMin !=  myMin){
     MinuteTick=true;
+    
   }
   previousSec  = mySec;
   previousMin  = myMin;
   previousHour = myHour;
   previousDate = myDate;
 
-  RTC_ReadTime();
-
-  /* This will be used to determine which screen / display to show  */
-  uint8_t screen = 0;
-
-  /* If we are not running in auto mode we need to chage thi here a bit */
-  switch ( displaysettings.displaymode ){
-    case DISPLAY_AUTO:{
-      screen = ( myHour % 3 );
-          if( screen > 2 ){
-            screen = 0;
-          }
-    } break;
-  
-    case DISPLAY_ONE:{
-      screen = 0;
-    } break;
-  
-    
-    case DISPLAY_TWO:{
-      screen = 1;
-    } break;
-    
-    case DISPLAY_THREE: {
-      screen = 2;
-    } break;
-    
-    default:{
-      screen = 0;
-      displaysettings.displaymode = DISPLAY_AUTO;
-    }    
-  }
-  
-  
+ RTC_ReadTime();
 
   // ========================= TURNING DISPLAY =========================
-  if ( screen != last_screen ) {
+  if (myHour != previousHour) {
+  
     lcd.clearScreen();  // Erase the screen before each clock display change
-    refreshScreen=true;
   }
   // ======================= CadranAiguilles : selected at 0, 3, 6, 9, 12, 15, 18, 21, 24 hour
-  if ( screen == 0) {
+  if ((myHour % 3) == 0) {
     if(last_screen != 0){
       refreshScreen=true;
       last_screen=0;
@@ -402,7 +356,7 @@ void loop()
   }
 
   // ======================= Cadran2 : selected at 1, 4, 7, 10, 13, 16, 19, 22 hour
-  if ( screen == 1) {
+  if ((myHour % 3) == 1) {
     Color_t Color;
     if(last_screen != 1){
       refreshScreen=true;
@@ -442,7 +396,7 @@ void loop()
 
   // ======================= SevenSegments : selected at 2, 5, 8, 11, 14, 17, 20, 23 hour
   // affiche le cadre des secondes
-  if ( screen == 2)
+  if ((myHour % 3) == 2)
   {
     if(last_screen != 2){
       refreshScreen=true;
@@ -468,7 +422,12 @@ void loop()
     
   }
   
-  if(true==GetNextAlert( (MinuteTick | refreshScreen ) ) ){
+ 
+  if(MinuteTick == true){
+    MinuteTick=false;
+  }
+
+    if(true==GetNextAlert( (MinuteTick | refreshScreen ) ) ){
     AffAlarm(true);
   } else {
     AffAlarm(refreshScreen);
@@ -477,43 +436,8 @@ void loop()
     MinuteTick=false;
   }
   
-  
   refreshScreen = false;
 
-    // ============================= PASSAGE EN MODE REGLAGE ====================================
-  // if key C pressed "ok", then setup mode
-  if(C >  DureeAppui  ) {
-     AlertBits.BeepOn=LOW;
-     AlertBits.SnoozeOn=LOW;
-     AlertBits.Reserved=0;
-     AlertBits.SnoozeHour=0;
-     AlertBits.SnoozeMinute=0;
-     
-      SettingTime();
-      /* Alert reset */
-    }   
-  
-
-  if( (B > DureeAppui) && (AlertBits.BeepOn == LOW ) && ( AlertBits.SnoozeOn == LOW) ) {
-     AlertBits.BeepOn=LOW;
-     AlertBits.SnoozeOn=LOW;
-     AlertBits.Reserved=0;
-     AlertBits.SnoozeHour=0;
-     AlertBits.SnoozeMinute=0;
-     SettingAlert();
-      /* Alert reset */
-    } 
-
-  if( A >  DureeAppui  ){
-     AlertBits.BeepOn=LOW;
-     AlertBits.SnoozeOn=LOW;
-     AlertBits.Reserved=0;
-     AlertBits.SnoozeHour=0;
-     AlertBits.SnoozeMinute=0;
-     SettingsDisplay(); 
-  }
-   
-   AlertProcess();
 
 
   //=========================== DIMMING OF THE TFT SCREEN LEDs ============================
@@ -522,196 +446,18 @@ void loop()
   // ================= END OF MAIN LOOP ======================
 }
 
-void RTC_ReadTime(){
-
- /* Adapt this to yout RTC if needed */
-  t_temp  = rtc.getTime();
-  myYear  = t_temp.year;
-  myMonth = t_temp.mon;
-  myDate  = t_temp.date;
-  myDow   = t_temp.dow;
-  myHour  = t_temp.hour;
-  myMin   = t_temp.min;
-  mySec   = t_temp.sec;
-
-}
-
-
 
 void Backlight(){
-int light=0;
-int range=0;
-float scale = 0;
-float backlight_val=0;
- // Read the value of the light cell
- switch(auto_dimmer){
-    case 0:{
-     light = analogRead(A1);
-     DEBUGPRINT(light);
-     
-     /* Values range currently from 850(bright) to 1000(dark) */
-     /* 850 will be 1023 and 1000 will be 10 */
-     /* 250 as delta we got */
-    
-     /* On some clocks the value ranges from 80 ( Bright ) to (400 (dark) */
-     /* We gont an delta of 320 for this type of sensor */
-     /* If we have 80 for bright we want to have 255 as result */
-     /* With this we need to scale back to 0 to 255 */
-     range = LDR_Calibration.LDR_DARK-LDR_Calibration.LDR_BRIGHT;     
-     DEBUGPRINT("\n\r");   
-     DEBUGPRINT(range);
-     scale = (float)255 / (float)range;
-     DEBUGPRINT("\n\r");   
-     DEBUGPRINT(scale);
-     
-     light = light-LDR_Calibration.LDR_BRIGHT; /* Remove offset */
-     backlight_val = light * scale;
-     /* here we need to inver the value as a higer one means darker */
-     DEBUGPRINT("\n\r");   
-     DEBUGPRINT(backlight_val);
-     DEBUGPRINT(" ... \n\r");   
-     if(backlight_val>255){
-      light=0;
-     } else {
-      light=255-backlight_val;
-     }
-     
-      if (light > 250) {
-        light = 255; // max = 255
-      }
 
-      
-      if (light < 25) {
-        light = 25; /* Low value must be adjusted */
-      } else {
-        light=light*4;
-      }
-      Timer1.pwm(9, light);
-    } break;
-
-    case 1:{ /* MAX */
-       Timer1.pwm(9, 1023);
-    } break;
-
-    case 2:{ /* MED */
-      Timer1.pwm(9, 512);
-    } break;
-
-    case 3:{ /*LOW */
-      Timer1.pwm(9, 50);
-    } break;
-
-    default:{
-       Timer1.pwm(9, 1023);
-    }
-  }
-  
+  /* need a backlight control */
 }
 
 
-void AlertProcess(){
 
-   if( BeepRunCnt > ( 60 * MAX_BEEP_TIME_MIN ) ){
-         AlertBits.BeepOn=LOW ;
-         AlertBits.SnoozeOn=LOW;
-         AlertBits.Reserved=0;
-         AlertBits.SnoozeHour=0;
-         AlertBits.SnoozeMinute=0;  
-         
-   }
-
-   if(AlertBits.BeepOn==LOW){
-     while( BeepRunCnt != 0){
-              BeepRunCnt=0;
-     }
-   }
-   
-  
-  // ============================= PASSAGE EN MODE ARRET SONNERIE =============================
-  // if key A pressed "-", stop the beeper ringing and NO snooze
-  if ((A > DureeAppui) && (AlertBits.BeepOn == HIGH)) {
-     AlertBits.BeepOn=LOW;
-     AlertBits.SnoozeOn=LOW;
-     AlertBits.Reserved=0;
-     AlertBits.SnoozeHour=0;
-     AlertBits.SnoozeMinute=0;
-     GetNextAlert(true);
-  }
-
-    if ((A > DureeAppui) && (AlertBits.SnoozeOn == HIGH)) {
-     AlertBits.BeepOn=LOW;
-     AlertBits.SnoozeOn=LOW;
-     AlertBits.Reserved=0;
-     AlertBits.SnoozeHour=0;
-     AlertBits.SnoozeMinute=0;
-     GetNextAlert(true);
-  }
-
-  // ============================= ALARM ACTIVATION ===========================================
-  // Beep if alarm time or snooze time matches
-  if ( (UserAlarm[0].Hour  == myHour) && (UserAlarm[0].Minute   == myMin) && (AlertBits.SnoozeOn==LOW) && ( SwitchAlarm == LOW ) ) 
-  {
-    if(previousMin != myMin){
-      AlertBits.BeepOn = HIGH;
-    } 
-  }
-
-  if(  (AlertBits.SnoozeHour  == myHour) && (AlertBits.SnoozeMinute == myMin) && (AlertBits.SnoozeOn==HIGH) ){
-     if(previousMin != myMin){
-         AlertBits.BeepOn = HIGH;
-    } 
-  }
-
-  // ============================= TURN IN SNOOZE MODE ========================================
-  // Pressing the B "+" key keeps the snooze mode : stop the current alarm but keeps the following alarms
-
-  if ((B > DureeAppui) && (AlertBits.BeepOn == HIGH)) {
-    /* we need to determine if we had snoozed for a while ....*/
-    if( AlertBits.SnoozeOn == HIGH ){
-      /* we need to copy a bit arround here */
-      UserAlarm[0].Minute = AlertBits.SnoozeMinute;
-      UserAlarm[0].Hour = AlertBits.SnoozeHour;
-    }
-    
-    if ((UserAlarm[0].Minute + 5) != (UserAlarm[0].Minute + 5) % 60)
-    {
-      AlertBits.SnoozeMinute = ((UserAlarm[0].Minute + 5 ) % 60);
-      AlertBits.SnoozeHour  = UserAlarm[0].Hour + 1;
-    }
-    else
-    {
-      AlertBits.SnoozeMinute = (UserAlarm[0].Minute + 5);
-      AlertBits.SnoozeHour  = UserAlarm[0].Hour;
-    }
-    AlertBits.SnoozeOn = HIGH;
-    AlertBits.BeepOn = LOW;
-    AffAlarm(true);
-   
-  }
-
-  //=========================== RESET THE ALARM ON FOR THE NEXT DAY ============================ 
-}
 
 
 void Buzzer( ) {
-   if (AlertBits.BeepOn==HIGH) {
-       /* We need a minute counter, or here a second counter ..... */
-       if(BeepRunCnt<0xFFFF){
-          BeepRunCnt++;
-       }
-
-       if (ToggeleBeper == true) {
-        ToggeleBeper = false;
-        /* Dim Backlight to save power */
-        tone(A0, 1500);
-      } else {
-        ToggeleBeper = true;
-        noTone(A0);
-      }
-    } else {
-      noTone(A0);
-      BeepRunCnt=0;
-  }
+   /* Need a buzzer to be implemented in the watch */
 }
 
 bool GetNextAlert(bool refresh){
@@ -864,13 +610,7 @@ if(refresh==false){
 
 
 void AlarmSync() {
-  uint8_t* AlPtr;
-  AlPtr=(uint8_t*)&UserAlarm[1];
-  for(uint8_t i=0;i<sizeof(UserAlarm);i++){
-      EEPROM.write(i, *(AlPtr));
-      AlPtr++;
-  }
- 
+  
 }
 
 
@@ -886,7 +626,7 @@ void AffAlarm(bool refresh) /* Used to turn Alram on and off */
     refresh=true;
   }
   Prev_Snooze = AlertBits.SnoozeOn;
-  uint8_t ButtonVlaue = digitalRead(A5);
+  uint8_t ButtonVlaue = HIGH;;
   if( ( ( ButtonVlaue == LOW ) && ( Button_PrevValue == HIGH)  ) || (refresh == true) )
   {
 
@@ -896,7 +636,7 @@ void AffAlarm(bool refresh) /* Used to turn Alram on and off */
       } else {
         SwitchAlarm = HIGH;
       }
-      EEPROM.write( EEPALERTONOFF_ADDR, SwitchAlarm );
+     // EEPROM.write( EEPALERTONOFF_ADDR, SwitchAlarm );
      
       
     }
@@ -1373,64 +1113,7 @@ void AfficherDate()
   lcd.setPrintPos( 235, 237); lcd.print(Month[myMonth - 1]);
 }
 
-uint8_t Touches()
-{
-  uint8_t Result =0 ;
-  /* Buttons are inverted !" */
-  uint8_t ReadA = !digitalRead(ToucheA);
-  uint8_t ReadB = !digitalRead(ToucheB);
-  uint8_t ReadC = !digitalRead(ToucheC);
-  uint8_t ReadD = !digitalRead(ToucheD);
-  
-  if( (ReadA!=LOW) && (ReadB==LOW ) && ( ReadC==LOW) && ( ReadD == LOW) ){
-    if(A <255){
-      A++;
-    }
-  } else {
-    A=0;
-  }
 
-  if( (ReadA==LOW) && (ReadB!=LOW ) && ( ReadC==LOW) && ( ReadD == LOW) ){
-    if(B <255){
-      B++;
-    }
-  } else {
-    B=0;
-  }
-
-  if( (ReadA==LOW) && (ReadB==LOW ) && ( ReadC!=LOW) && ( ReadD == LOW) ){
-    if(C <255){
-      C++;
-    }
-  } else {
-    C=0;
-  }
-
-  if( (ReadA==LOW) && (ReadB==LOW ) && ( ReadC==LOW) && ( ReadD != LOW) ){
-    if(D <255){
-      D++;
-    }
-  } else {
-    D=0;
-  }
-
-
-
-  if (A > DureeAppui) {
-    Result = 1;
-  } else if (B > DureeAppui) {
-    Result = 2;
-  } else if (C > DureeAppui) {
-    Result = 3;
-  } else if (D > DureeAppui) {
-    Result = 4;
-  } else  {
-    Result = 0;
-  }
-  /* The problem here we can only have one button tuched at a time as result*/
-  
-  return Result;
-}
 
 void HeadlineHelper(){
   lcd.clearScreen();
@@ -1448,14 +1131,14 @@ void AlertHelper(){
 
 void PrintCopyright(){
     lcd.setPrintPos( 5, 236);    
-    lcd.print(F(" Author: O.CROISET 2017 Rev:2.7.0"));
+    lcd.print(F(" Author: O.CROISET 2017 Rev:2.6.1"));
 }
 
 void SettingAlert()
 {
   uint8_t PrevA=88;
   AlertBits.BeepOn = LOW;                                         // stop the beeper if ringing
-  Button = 0;                                                    // RaZ de Button
+  uint8_t Button = 0;                                                    // RaZ de Button
 
   /*ALARM DISPLAY*/
 
@@ -1516,8 +1199,8 @@ void SettingAlert()
       delay(100);
     }
     Button = 0;
-    C = 0;
-    D = 0;
+//    C = 0;
+//    D = 0;
     lcd.setColor ( 255, 255, 255);
     lcd.setPrintPos( 83,  AlarmNext); lcd.print(UserAlarm[Alarmx].Hour);
     PrevA = 88;
@@ -1541,7 +1224,7 @@ void SettingAlert()
     else {
       delay(100);
     }
-    Button = 0; C = 0; D = 0;                                   // reset the C counter
+//    Button = 0; C = 0; D = 0;                                   // reset the C counter
     lcd.setColor ( 255, 255, 255);
     lcd.setPrintPos( 172,  AlarmNext); lcd.print(UserAlarm[Alarmx].Minute);
     PrevA = 88;
@@ -1560,7 +1243,7 @@ void SettingAlert()
     }
     while (Button != 3 && Button != 4 && NextAlarm != false);                                 // while OK not pressed, else continue
     NextAlarm = true;
-    Button = 0; C = 0; D = 0;
+//    Button = 0; C = 0; D = 0;
     lcd.setColor ( 255, 255, 255);
     lcd.setPrintPos( 10, AlarmNext); lcd.print(Alarmx);
     lcd.setPrintPos( 10, AlarmNext); AlertHelper();
@@ -1580,419 +1263,11 @@ void SettingAlert()
 }
 
 
-void SettingTimePrintText(uint8_t txt_id){
-    switch(txt_id){
-      case 0:{
-        lcd.setPrintPos(  10, 70);  lcd.print(F("   Year        :         "));
-      }break;
-
-      case 1:{
-        lcd.setPrintPos(  10,  55); lcd.print(F("TIME"));
-      }break;
-
-       case 2:{
-         lcd.setPrintPos(  10, 70);  lcd.print(F("   Year        :         "));
-      }break;
-
-      case 3:{
-          lcd.setPrintPos(  10, 85);  lcd.print(F("   Month       :         "));
-      }break;
-
-      case 4:{
-         lcd.setPrintPos(  10, 100); lcd.print(F("   Day of week :         "));  // day of week : monday to sunday
-      }break;
-
-      case 5:{
-         lcd.setPrintPos(  10, 115); lcd.print(F("   Date        :         "));  // # of the day : 1, 2, . . . 31
-      }break;
-
-      case 6:{
-         lcd.setPrintPos(  10, 130); lcd.print(F("   Hour        :         "));
-      }break;
-
-      case 7:{
-          lcd.setPrintPos(  10, 145); lcd.print(F("   Minute      :         "));
-      }break;
-
-       case 8:{
-          lcd.setPrintPos(  10, 160); lcd.print(F("BACKLIGHT"));
-      }break;
-
-       case 9:{
-          lcd.setPrintPos(  10, 175); lcd.print(F("   Brightness :         "));
-      }break;
-
-      case 10:{
-         lcd.setPrintPos(  10, 190); lcd.print(F("   LDR Bright :         "));        
-      } break;
-
-      case 11:{
-          lcd.setPrintPos(  10, 205); lcd.print(F("   LDR Dark   :         "));     
-      } break;
-      
-      default:{
-        
-      } break;
-
-    }
-    
-}
-
-void SettingTime(  ){
-  uint8_t prev_dimmer=0;
-  uint16_t PrevA=0xFFFF;
-  lcd.clearScreen();
-  HeadlineHelper();
-  PrintCopyright();
-  for(uint8_t i=0;i<12;i++){
-    SettingTimePrintText(i);
-  }
-  myHour  = t_temp.hour;
-  myMin   = t_temp.min;
-
-  lcd.setPrintPos( 160, 70); lcd.print(myYear);
-  lcd.setPrintPos( 160, 85); lcd.print(Month[myMonth - 1]);
-  lcd.setPrintPos( 160, 100); lcd.print(Day[myDow - 1]);
-  lcd.setPrintPos( 160, 115); lcd.print(myDate);
-  lcd.setPrintPos( 160, 130); lcd.print(myHour);
-  lcd.setPrintPos( 160, 145); lcd.print(myMin);
-  lcd.setPrintPos( 160, 175); lcd.print(OFF_ON[auto_dimmer]);
-  lcd.setPrintPos( 160, 190); lcd.print(LDR_Calibration.LDR_BRIGHT);
-  lcd.setPrintPos( 160, 205); lcd.print(LDR_Calibration.LDR_DARK);
-  
-  /*===================================================================*/
-  /*                               TIME                                */
-  /*===================================================================*/
-
-
-
-  //=================== End of the alarm setting and record
-
-  /*===================================================================*/
-  /*             RECORD THE DATE AND TIME IN THE DS1302 CHIP           */
-  /*===================================================================*/
-  do
-  {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    SettingTimePrintText(2);
-    myYear = SettingHelper1(myYear);
-    if (myYear != PrevA)
-    {
-      delay(50);
-      lcd.setColor ( 0, 0, 0);                            //
-      lcd.drawBox (160, 60, 40, 10);                     // to erase the previous characters
-      lcd.setColor ( 0, 225, 0);
-      lcd.setPrintPos( 160, 70); lcd.print(myYear);      // refresh the display in Blue
-      PrevA = myYear;
-    }
-  }
-  while (Button != 3  && Button != 4);                                 // while OK not pressed, else continue
-  
-  Button = 0; C = 0;
-  t_temp.year = myYear;
-  lcd.setColor ( 255, 255, 255);                        // Reset to white
-  SettingTimePrintText(2);
-  lcd.setPrintPos( 160, 70); lcd.print(myYear);
-  PrevA = 88;
-  // ==================================================== Modify the month
-  do {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-   SettingTimePrintText(3);
-    myMonth = SettingHelper1(myMonth);
-    myMonth = SettingHelper2(myMonth, 12, 1);
-    if (myMonth != PrevA)
-    {
-      delay(50);
-      lcd.setColor ( 0,  0, 0);
-      lcd.drawBox (160, 75, 90, 13);                     // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      lcd.setPrintPos( 160, 85); lcd.print(Month[myMonth - 1]);      // refresh the display in Red
-      PrevA = myMonth;
-    }
-  }
-  while (Button != 3 && Button != 4);                                 // while OK not pressed, else continue
-  Button = 0; C = 0;
-  lcd.setColor ( 255, 255, 255);                        // Reset to white
-  SettingTimePrintText(3);
-  lcd.setPrintPos( 160, 85); lcd.print(Month[myMonth - 1]);
-  PrevA = 88;
-  // ==================================================== Modify the day of week (Monday..Sunday)
-  do  {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    SettingTimePrintText(4);
-    myDow = SettingHelper1(myDow);
-    myDow = SettingHelper2(myDow, 7, 1);
-    if (myDow != PrevA)
-    {
-      delay(50);
-      lcd.setColor ( 0, 0, 0);                            //
-      lcd.drawBox (160, 90, 120, 13);                     // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      lcd.setPrintPos( 160, 100); lcd.print(Day[myDow - 1]);      // refresh the display in Red
-      PrevA = myDow;
-    }
-  }
-  while (Button != 3 && Button != 4);                                 // while OK not pressed, else continue
-  Button = 0; C = 0;
-  lcd.setColor ( 255, 255, 255);                        // Reset to white
-  SettingTimePrintText(4);
-  //lcd.setPrintPos( 160, 150); lcd.print(myDow);
-  lcd.setPrintPos( 160, 100); lcd.print(Day[myDow - 1]);
-  PrevA = 88;
-  // ==================================================== Modify the date (1..31)
-  do  {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    SettingTimePrintText(5);
-    myDate = SettingHelper1(myDate);
-    myDate = SettingHelper2(myDate, 31, 1);
-    if (myDate != PrevA)
-    {
-      delay(50);
-      lcd.setColor ( 0, 0, 0);                            //
-      lcd.drawBox (160, 105, 40, 10);                     // to erase the previous characters
-      lcd.setColor (0, 255, 0);
-      lcd.setPrintPos( 160, 115); lcd.print(myDate);      // refresh the display in Red
-      PrevA = myDate;
-    }
-  }
-
-  while (Button != 3 && Button != 4);                                 // while OK not pressed, else continue
-  Button = 0; C = 0;
-  lcd.setColor ( 255, 255, 255);                        // Reset to white
-  SettingTimePrintText(5);
-  lcd.setPrintPos( 160, 115); lcd.print(myDate);
-  PrevA = 88;
-  rtc.setDate( myDate, myMonth, myYear);                // date,  month , year
-  rtc.setDOW ( myDow );                                 // Day Of Week
-  myHour  = t_temp.hour;
-  // ======================================================= Modifier l'heure
-  do {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    SettingTimePrintText(6);
-    myHour = SettingHelper1(myHour);
-    myHour = SettingHelper2(myHour, 23, 0);
-    if (myHour != PrevA)
-    {
-      delay(50);
-      lcd.setColor ( 0, 0, 0);
-      lcd.drawBox (160, 120, 20, 10);                     // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      lcd.setPrintPos( 160, 130); lcd.print(myHour);      // refresh the display in Red
-      PrevA = myHour;
-    }
-  }
-  while (Button != 3 && Button != 4);                                 // while OK not pressed, else continue
-  Button = 0; C = 0;
-  lcd.setColor (255, 255, 255);                         // Reset to white
-  SettingTimePrintText(6);
-  lcd.setPrintPos( 160, 130); lcd.print(myHour);
-  PrevA = 88;
-  myMin   = t_temp.min;
-  // ===================================================== Modifier les minutes
-  do {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-   SettingTimePrintText(7);
-    myMin = SettingHelper1(myMin);
-    myMin = SettingHelper2(myMin, 59, 0);
-    if (myMin != PrevA)
-    {
-      delay(50);
-      lcd.setColor ( 0,  0, 0);                           //
-      lcd.drawBox (160, 135, 40, 10);                 // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      lcd.setPrintPos( 160, 145); lcd.print(myMin);       // refresh the display in Red
-      PrevA = myMin;
-    }
-
-  }
-  while (Button != 3 && Button != 4);                                 // while OK not pressed, else continue
-  Button = 0; C = 0;
-  lcd.setColor ( 255, 255, 255);                        // Reset to white
-  SettingTimePrintText(7);
-  lcd.setPrintPos( 160, 145); lcd.print(myMin);
-  PrevA = 88;
-  /* Backlight on off */
-  prev_dimmer = 255;
-  do {
-    Backlight();
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    SettingTimePrintText(9);
-    auto_dimmer = SettingHelper1(auto_dimmer);
-    auto_dimmer = SettingHelper2(auto_dimmer, 3, 0);
-    if (prev_dimmer != auto_dimmer)
-    {
-      delay(50);
-      lcd.setColor ( 0,  0, 0);                           //
-      lcd.drawBox (160, 165, 40, 10);                 // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      Backlight();
-      lcd.setPrintPos( 160, 175); lcd.print(OFF_ON[auto_dimmer]);
-      prev_dimmer = auto_dimmer;
-    }
-
-  }
-  while (Button != 3 && Button != 4);                                 // while OK not pressed, else continue
-  EEPROM.write( EEPLIGHT_ADDR, auto_dimmer );
-  lcd.setColor ( 255, 255, 255);                          // White
-  SettingTimePrintText(9);
-  lcd.setPrintPos( 160, 175); lcd.print(OFF_ON[auto_dimmer]);
-  
-/* This is for the LDR calibration */
-  prev_dimmer = auto_dimmer;
-  auto_dimmer = 1;
-  Backlight();
-  do {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    SettingTimePrintText(10);
-    if(Button==3){
-     delay(50);
-     while(Button==3){
-     /* Wait till released */
-     delay(50); 
-     }
-     /* Do untill pressed */
-     while(Button!=3){
-      lcd.setColor ( 0,  0, 0);                           //
-      lcd.drawBox (160, 180, 60, 10);                 // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      lcd.setPrintPos( 160, 190); 
-      LDR_Calibration.LDR_BRIGHT = analogRead(A1);
-      LDR_Calibration.INV_LDR_BRIGHT = ~LDR_Calibration.LDR_BRIGHT;
-      lcd.print(LDR_Calibration.LDR_BRIGHT);
-      delay(75);
-     }
-     while(Button==3){
-     /* Wait till released */ 
-      delay(50);
-     }
-     
-   }
-   
-  }
-  while ( Button != 4 );  
-  lcd.setColor ( 255, 255, 255);                          // Blue
-  SettingTimePrintText(10);
-  lcd.setPrintPos( 160, 190); 
-  lcd.print(LDR_Calibration.LDR_BRIGHT);
-    
-   
-
-/* This is for the LDR calibration */
-  do {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    SettingTimePrintText(11);
-    if(Button==3){
-     delay(50);
-     while(Button==3){
-     /* Wait till released */
-     delay(50); 
-     }
-     /* Do untill pressed */
-     while(Button!=3){
-      lcd.setColor ( 0,  0, 0);                           //
-      lcd.drawBox (160, 195, 60, 10);                 // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      lcd.setPrintPos( 160, 205); 
-      LDR_Calibration.LDR_DARK = analogRead(A1);
-      LDR_Calibration.INV_LDR_DARK = ~LDR_Calibration.LDR_DARK;
-      lcd.print(LDR_Calibration.LDR_DARK);
-      delay(75);
-     }
-     while(Button==3){
-      delay(50);
-     }
-     
-   }
-   
-  }
-  while ( Button != 4 );   
-  
-  auto_dimmer=prev_dimmer;
-  Backlight();
-  Backlight_Cal_Sync();
-  
-
-   // ========== Modify the seconds
-  /*===================================================================*/
-  /*                   Record the hour in the DS1302                   */
-  rtc.setTime(myHour, myMin, mySec);                        // Set the time
-  /*===================================================================*/
-  // and erase the screen to return to display the clock screen
-  lcd.clearScreen();
-  refreshScreen = true;
-  GetNextAlert(true);
-}
-
-void SettingsDisplay(  ){
-  uint16_t PrevA=0xFFFF;
-  lcd.clearScreen();
-  HeadlineHelper();
-  PrintCopyright();
-
-  lcd.setPrintPos(  10, 70);  lcd.print(F("   Displaymode    :         "));
-
-  
-  
-
-  do
-  {
-    lcd.setColor ( 0, 0, 255);                          // Blue
-    lcd.setPrintPos(  10, 70);  lcd.print(F("   Displaymode :             "));
-    displaysettings.displaymode = SettingHelper1( displaysettings.displaymode );
-    displaysettings.displaymode = SettingHelper2(displaysettings.displaymode, DISPLAY_THREE, DISPLAY_AUTO);
-   
-    if (displaysettings.displaymode != PrevA)
-    {
-     
-      delay(50);
-      lcd.setColor ( 0,  0, 0);                           //
-      lcd.drawBox (160, 50, 140 , 20);                 // to erase the previous characters
-      lcd.setColor ( 0, 255, 0);
-      lcd.setPrintPos( 160, 70); 
-        switch(displaysettings.displaymode){
-          case DISPLAY_AUTO: {
-            lcd.print(F("Automatic"));
-          } break;
-                
-          case DISPLAY_ONE: {
-            lcd.print(F("clock face 1"));
-          } break;
-
-          case DISPLAY_TWO: {
-             lcd.print(F("clock face 2"));
-          } break;
-          
-          case DISPLAY_THREE: {
-             lcd.print(F("clock face 3"));
-          } break;
-
-          default:{
-             displaysettings.displaymode = DISPLAY_AUTO;
-             
-          } break;
-        }
-          
-         
-      PrevA = displaysettings.displaymode;
-    }
-  }
-  while (Button != 3  && Button != 4);                                 // while OK not pressed, else continue
-  
-  Button = 0; C = 0;
-  lcd.setColor ( 255, 255, 255);                        // Reset to white
-  
-  EEPROM.write( EEPDISPLAYROTATAION, displaysettings.displaymode );
-  lcd.clearScreen();
-  refreshScreen = true;
-  GetNextAlert(true);
-}
-
-
 void Backlight_Cal_Sync(){
   uint8_t* u8Ptr;
   u8Ptr=(uint8_t*)&LDR_Calibration;
   for(uint8_t i=0;i<sizeof(LDR_CAL_t);i++){
-      EEPROM.write(LDR_CAL_OFFSET+i, *(u8Ptr));
+      //EEPROM.write(LDR_CAL_OFFSET+i, *(u8Ptr));
       u8Ptr++;
   }
 }
@@ -2006,6 +1281,7 @@ void Backlight_Cal_Sync(){
 */
 int16_t SettingHelper1(int16_t Aspect) {
   //Button = Touches(); ??
+/*
   if(A > (DureeAppui)) {
     Aspect--;  // left
     A = 0;
@@ -2014,6 +1290,7 @@ int16_t SettingHelper1(int16_t Aspect) {
     Aspect++;  // right
     B = 0;
   }
+ */
   return Aspect;
 }
 int8_t SettingHelper2(int8_t Aspect, int8_t timeAspect1, int8_t timeAspect2) {
@@ -2028,10 +1305,6 @@ int8_t SettingHelper2(int8_t Aspect, int8_t timeAspect1, int8_t timeAspect2) {
 
 void SevenSegments(bool refresh)
 {
-    // Flash ROM = ??? bytes (3614 bytes in a previous non-optimized version)
-  // https://github.com/olikraus/lcdlib/wiki/reference
-  // http://www.proftnj.com/RGB3.htm    for the segments colours definition
-  // http://www.fond-ecran-image.com/galerie-membre,horloge,horloge-de-garejpg.php : horloge Part-Dieu LYON
   static uint8_t SegemenValue[4]={255,255,255,255};
  
   // ============= display each digit in a "for" loop
@@ -2376,3 +1649,5 @@ void CadranSecondes()
     lcd.drawVLine( (5 * i) + 5, 201, 9);  // secondes separator
   }
 }
+
+#endif
