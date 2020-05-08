@@ -442,9 +442,8 @@ void DisplayTask()
 
 
 void Backlight(){
-  /* need a backlight control */
 
-  
+  /* need a backlight control */
 }
 
 
@@ -453,8 +452,6 @@ void Backlight(){
 
 void Buzzer( ) {
    /* Need a buzzer to be implemented in the watch */
-
-   
 }
 
 bool GetNextAlert(bool refresh){

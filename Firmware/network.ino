@@ -231,25 +231,9 @@ void configureServer() {
   server->on("/ntp.dat",HTTP_POST,ntp_settings_update); /* needs to process NTP_ON, NTPServerName and NTP_UPDTAE_SPAN */
   server->on("/timezone.dat",timezone_update); /*needs to handel timezoneid */
   server->on("/overrides.dat",timezone_overrides_update); /* needs to handle DLSOverrid,  ManualDLS, dls_offset, ZONE_OVERRRIDE and GMT_OFFSET */
-  server->on("/pinballscore.dat", update_pinballscore);
   server->onNotFound(sendFile); //handle everything except the above things
   server->begin();
   Serial.println("Webserver started");
-}
-
-void update_pinballscore(){
-  /* Needs to get data form the webserver here and also respond accordingly */
-  if( ! server->hasArg("pinball_score") || server->arg("pinball_score") == NULL ) { // If the POST request doesn't have username and password data
-    /* we are missing something here */
-  } else {
-   
-    Serial.printf("New Score: %s\n\r",server->arg("pinball_score").c_str());
-    uint32_t score = server->arg("timezoneid").toInt();
-    pinballscore( score ); 
-  }
-  server->send(200);    
-
- 
 }
 
 void WiFiResetSettings(){
