@@ -51,6 +51,7 @@ timecoreconf_t Timecore::GetDefaultConfig( void) {
 
 /* we do a degrading every 30 minutes */
 void Timecore::SetUTC( uint32_t time, source_t source ){
+    
     if(  source >= CurrentMasterSource ){
       CurrentMasterSource = source;
       /* The priority is higher or equal we sync now */
@@ -79,7 +80,7 @@ void Timecore::SetUTC( datum_t time, source_t source  ){
       interrupts();
       
     } else {
-      Serial.printf("TS: %i from %i, lower prio as %i",time,source,CurrentMasterSource);
+      Serial.printf("TS: %i from %i, lower prio as %i",timestamp,source,CurrentMasterSource);
     }
     
 }
@@ -158,7 +159,7 @@ bool Timecore::GetDLSstatus( void ){
   uint32_t now = GetUTC();
    if(local_config.AutomaticDLTS_Ena==true){
      bool northTZ = (dstEnd>dstStart)?1:0; // Northern or Southern hemisphere TZ?
-     if(northTZ && (now >= dstStart && now < dstEnd) || !northTZ && (now < dstEnd || now >= dstStart) ) {
+     if( (northTZ && (now >= dstStart && now < dstEnd) )|| ( !northTZ && (now < dstEnd || now >= dstStart) ) ) {
       result = true;
      }
    } else {
@@ -211,7 +212,7 @@ void Timecore::SetLocalTime( datum_t d){
   }
 
   if(local_config.AutomaticDLTS_Ena==true){
-    if(northTZ && (localtimestamp >= dstStart && localtimestamp < dstEnd) || !northTZ && (localtimestamp < dstEnd || localtimestamp >= dstStart)){
+    if ((northTZ && (localtimestamp >= dstStart && localtimestamp < dstEnd)) || (!northTZ && (localtimestamp < dstEnd || localtimestamp >= dstStart))){
       localtimestamp -= ZoneTable[local_config.TimeZone].StartRule.offset;
       Serial.printf(" Removed DLS Offset  ");
     } else {
@@ -330,7 +331,7 @@ time_t Timecore::GetLocalTime( void )
       Serial.println(ctime(&dstEnd));
   }
    
-    if(northTZ && (now >= dstStart && now < dstEnd) || !northTZ && (now < dstEnd || now >= dstStart))
+    if( ( northTZ && ( now >= dstStart && now < dstEnd) ) || ( !northTZ && (now < dstEnd || now >= dstStart)))
      {
       //Serial.printf("DLS active with %i offset",ZoneTable[CurrentZone].StartRule.offset);
       //Serial.println(ctime(&now));

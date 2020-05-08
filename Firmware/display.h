@@ -32,8 +32,11 @@ unsigned long lastAlarmSound = 0;
 #define MAX_BEEP_TIME_MIN  ( 15 )
 
 // Init the TFT screen               dc  cs  reset
-Ucglib_ILI9341_18x240x320_HWSPI lcd(/*cd=*/ D3, /*cs=*/ D4 /*reset=*/ /*D0*/);
+//ESP8266
+//Ucglib_ILI9341_18x240x320_HWSPI lcd(/*cd=*/ D3, /*cs=*/ D4 /*reset=*/ /*D0*/);
 
+//ESP32
+Ucglib_ILI9341_18x240x320_HWSPI lcd(/*cd=*/ 10, /*cs=*/ 5 /*reset=*/ /*D0*/);
 typedef enum {
   released=0,
   pressed,
@@ -389,9 +392,9 @@ void DisplayTask()
     /*--------------------------------------------------*/
     lcd.setColor(255 , 255, 255);
     lcd.setPrintPos( 160, 165);
-    lcd << (Day[myDow - 1]) << " " << (myDate) ; endl;
+    lcd << (Day[myDow - 1]) << " " << (myDate) ; // endl;
     lcd.setPrintPos( 160, 185);
-    lcd << (Month[myMonth - 1]) << " " << (myYear); endl;
+    lcd << (Month[myMonth - 1]) << " " << (myYear); // endl;
   }
 
   // ======================= SevenSegments : selected at 2, 5, 8, 11, 14, 17, 20, 23 hour
@@ -406,7 +409,7 @@ void DisplayTask()
     if(refreshScreen == true){
         lcd.setColor(255 , 255, 255);
         lcd.setPrintPos(  30, 180);
-        lcd << (Day[myDow - 1]) << " " << (myDate) << " " << (Month[myMonth - 1]) << " " << (myYear); endl;
+        lcd << (Day[myDow - 1]) << " " << (myDate) << " " << (Month[myMonth - 1]) << " " << (myYear); //endl;
     }
 
     if(true==SecondTick){
@@ -488,6 +491,7 @@ if(refresh==false){
  
      for(uint8_t i=1;i<USERALARMCNT;i++){
        
+       //Compiler warning, as this is always true due to limited range of datattype
         if( (UserAlarm[i].Day>=0) && ( UserAlarm[i].Day<8) ){
             //Serial.println("Active");
             if( (UserAlarm[i].Day==7) && (Dow_ZeroStart < 5) ){ /* Mo-Fr */
@@ -1321,10 +1325,10 @@ uint8_t Blue=0;
   // Numdigit is the X position of the 7 segments
 
   //                 [chiffre, Numdigit, Red, Green, Blue] [..] [..] [..]
-  uint8_t Values[][5] = {{(myHour / 10),    8,  51, 255, 153},
-                        {(myHour % 10),   80, 255,   0,  51},
-                        {(myMin  / 10),  180, 255, 204,   0},
-                        {(myMin  % 10),  248, 127, 127, 255}
+  uint8_t Values[][5] = {{ (uint8_t)(myHour / 10) ,    8,  51, 255, 153},
+                        {  (uint8_t)(myHour % 10),   80, 255,   0,  51},
+                        {  (uint8_t)(myMin  / 10),  180, 255, 204,   0},
+                        {  (uint8_t)(myMin  % 10),  248, 127, 127, 255}
   };
 
   for ( i = 0; i < 4; i++){

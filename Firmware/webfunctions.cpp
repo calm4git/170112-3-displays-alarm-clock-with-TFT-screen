@@ -1,7 +1,10 @@
 
+//#include <ESP8266WebServer.h>
+//#include <ESP8266WebServerSecure.h>
+#include <Arduino.h>
+#include <WebServer.h>
+
 #include <ArduinoJson.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266WebServerSecure.h>
 #include "timecore.h"
 #include "NTP_Client.h"
 #include "datastore.h"
@@ -12,7 +15,8 @@ extern Timecore timec;
 extern NTP_Client NTPC;
 extern void displayrefesh( void );
 extern void sendData(String data);
-extern ESP8266WebServer * server;
+//extern ESP8266WebServer * server;
+extern WebServer * server;
 
 void response_settings(){
 StaticJsonBuffer<350> jsonBuffer;
@@ -25,7 +29,7 @@ String response="";
   memset(strbuffer,0,129);
   datum_t d = timec.GetLocalTimeDate();
   snprintf(strbuffer,64,"%02d:%02d:%02d",d.hour,d.minute,d.second);
-  strbuffer;
+  //strbuffer;
 
   root["time"] = strbuffer;
  
@@ -36,7 +40,7 @@ String response="";
   memset(strbuffer,0,129);
   snprintf(strbuffer,129,"%s",NTPC.GetServerName());
   root["ntpname"] = strbuffer;
-  root["tzidx"] = (int32)timec.GetTimeZone();
+  root["tzidx"] = (int32_t)timec.GetTimeZone();
   root["ntpena"] = NTPC.GetNTPSyncEna();
   root["ntp_update_span"]=NTPC.GetSyncInterval();
   root["zoneoverride"]=timec.GetZimeZoneManual();;

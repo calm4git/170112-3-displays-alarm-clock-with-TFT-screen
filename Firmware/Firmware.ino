@@ -1,8 +1,19 @@
+//ESP8266 includes
+/*
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
 #include <Hash.h>
 #include <ESPAsyncUDP.h>
+*/
+
+//ESP32 includes
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <esp_wifi.h>
+
+
 #include <SPI.h>
+#include <SPIFFS.h>
 #include <FS.h>
 
 

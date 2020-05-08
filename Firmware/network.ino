@@ -1,13 +1,18 @@
+#include <Arduino.h>
+#include <WebServer.h>
+
 #include "datastore.h"
 #include "webfunctions.h"
+/*
 #include <ESP8266WebServer.h>
 #include <ESP8266WebServerSecure.h>
-
+*/
 String APSSID = "ESP Universal Clock";
 String ssid ="";
 String pass="";
 
-ESP8266WebServer * server =NULL;
+//ESP8266WebServer * server =NULL;
+WebServer * server =NULL;
 
 String SSIDList(String separator = ",") {
   Serial.println("Scanning networks");
@@ -53,7 +58,8 @@ void setWiFiSettings() {
   /* if we do this we end up in flashloader */
   WiFi.softAPdisconnect(true);
   delay(2000);
-  pinMode(D0,INPUT_PULLUP);
+  //ESP8266
+  //pinMode(D0,INPUT_PULLUP);
   ESP.restart();
 }
 
@@ -74,7 +80,8 @@ void getWiFiSettings() {
 void restart() {
   sendData("The ESP will restart and you will be disconnected from the '" + APSSID + "' network.");
   delay(1000);
-  pinMode(D0,INPUT_PULLUP);
+  //ESP8266
+  //pinMode(D0,INPUT_PULLUP);
   ESP.restart();
 }
 
@@ -213,7 +220,8 @@ void configureSoftAP() {
 
 //initialize the webserver on port 80
 void configureServer() {
-  server = new ESP8266WebServer (80);
+  //server = new ESP8266WebServer (80);
+  server = new WebServer (80);
   server->on("/setWiFiSettings", HTTP_GET, setWiFiSettings);
   server->on("/getWiFiSettings", HTTP_GET, getWiFiSettings);
   server->on("/getSSIDList", HTTP_GET, getSSIDList);
