@@ -37,6 +37,7 @@ void ClockLayout2::ForceScreenRefresh( void ){
    Dow_Prev=-1;
 
    RedrawAlarm=true; 
+   _lcd->fillScreen(TFT_BLACK);
   
 }
 

@@ -5,10 +5,9 @@
 
   ClockLayout3::ClockLayout3( TFT_eSPI& lcd ){
     
-    dozenH_Prev=-1;
-    unitH_Prev=-1;
-    dozenM_Prev=-1;
-    unitM_Prev=-1;
+   for(uint8_t i=0;i<  (sizeof(digit_prev) / sizeof(digit_prev[0] ) ) ; i++ ){
+      digit_prev[i]=-1;
+    }
 
     Year_Prev=-1;
     Month_Prev=-1;
@@ -53,18 +52,14 @@ uint8_t Blue=0;
   for ( i = 0; i < 4; i++){
   
     digit = Values[i][0]; 
-    if( 1 == 1 ){
-             
+    if( digit_prev[i] != digit ){
+             digit_prev[i]=digit;
               Numdigit = Values[i][1]; Red = Values[i][2]; Green = Values[i][3]; Blue = Values[i][4];
               
               
               switch (digit)  // read and display the numerical value (1) for each digit position (i)
               {
                 case 0: {
-                    /*SegmentG();                            // Erease the previous segments
-                    lcd.setColor(Red, Green, Blue);        // Set the color
-                    SegmentA(); SegmentB(); SegmentC(); SegmentD();
-                    SegmentE(); SegmentF(); */
                     Segment('G',Numdigit,TFT_BLACK);
                    
                     Segment('A',Numdigit,_lcd->color565(Red, Green, Blue));
@@ -77,13 +72,7 @@ uint8_t Blue=0;
                   } break;
           
                 case 1: {
-                  /*
-                    SegmentA(); SegmentD();
-                    SegmentE(); SegmentF(); SegmentG();    // Erease the previous segments
-                    lcd.setColor(Red, Green, Blue);        // Set the color
-                    SegmentB(); SegmentC();
-                    */
-          
+                  
                     Segment('A',Numdigit,TFT_BLACK);
                     Segment('D',Numdigit,TFT_BLACK);
                     Segment('E',Numdigit,TFT_BLACK);
@@ -185,6 +174,8 @@ uint8_t Blue=0;
                   } break;
           
                 case 9: {
+                    Segment('E',Numdigit,TFT_BLACK);
+       
                   
                     Segment('A',Numdigit,_lcd->color565(Red, Green, Blue));
                     Segment('B',Numdigit,_lcd->color565(Red, Green, Blue));
@@ -230,10 +221,9 @@ uint8_t Blue=0;
 
  }
  void ClockLayout3::ForceScreenRefresh( void ){
-    dozenH_Prev=-1;
-    unitH_Prev=-1;
-    dozenM_Prev=-1;
-    unitM_Prev=-1;
+    for(uint8_t i=0;i<  (sizeof(digit_prev) / sizeof(digit_prev[0] ) ) ; i++ ){
+      digit_prev[i]=-1;
+    }
 
     Year_Prev=-1;
     Month_Prev=-1;
@@ -241,7 +231,7 @@ uint8_t Blue=0;
     Dow_Prev=-1;
     BargraphDrawn=false;
     RedrawAlarm=true;
-    
+    _lcd->fillScreen(TFT_BLACK);
  }
 
 
@@ -271,7 +261,6 @@ void ClockLayout3::Colon( uint8_t seconds)
 //
 void ClockLayout3::Segment( uint8_t idx, uint16_t offset, uint16_t color){
 
-  Serial.printf("Print Segemtn %c , Offset %u, Color %u\n\r", idx,offset,color);
   uint16_t x0 = 0;
   uint16_t y0 = 0;
   uint16_t x1 = 0;
@@ -511,7 +500,7 @@ void ClockLayout3::DrawDate( uint16_t year, uint8_t month, uint8_t day, uint8_t 
    _lcd->fillRect(5, 190, 320, 220, TFT_BLACK);
   _lcd->setCursor(5, 220, 2);
   _lcd->setTextColor(TFT_WHITE,TFT_BLACK);
-  _lcd->setFreeFont(FSB18); 
+  _lcd->setFreeFont(FSB12); 
   //We need to draw the DOW
   switch(dow){
       //Our week starts on Monday 
@@ -541,6 +530,7 @@ void ClockLayout3::DrawDate( uint16_t year, uint8_t month, uint8_t day, uint8_t 
         _lcd->print("Towel Day");
       }break;
   }
+  _lcd->setCursor(140, 220, 2);
   _lcd->setFreeFont(FSB12); 
   _lcd->print(" ");
   _lcd->print(day);

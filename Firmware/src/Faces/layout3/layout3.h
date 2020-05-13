@@ -18,10 +18,7 @@
 
     private:
 
-    int8_t dozenH_Prev;
-    int8_t unitH_Prev;
-    int8_t dozenM_Prev;
-    int8_t unitM_Prev;
+    int8_t digit_prev[4];
 
     int16_t Year_Prev;
     int8_t Month_Prev;

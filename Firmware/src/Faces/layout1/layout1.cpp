@@ -162,6 +162,7 @@ void ClockLayout1::ForceScreenRefresh( void ){
     hour_prev=-1; 
     minute_prev=-1; 
     RedrawAlarm=true;
+    _lcd->fillScreen(TFT_BLACK);
 }
 
 void ClockLayout1::DrawAlarmONOFF( bool ON ){

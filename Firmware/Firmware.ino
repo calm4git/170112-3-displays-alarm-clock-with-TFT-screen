@@ -14,16 +14,17 @@ ClockLayout1 L1 = ClockLayout1(lcd);
 
 Faces* Face[] = {&L1, &L2, &L3 };
 
-
+static uint8_t F=0;
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   lcd.init();
   lcd.setRotation(1);
   lcd.fillScreen(TFT_BLACK);
+  F=2;
+  Face[F]->ForceScreenRefresh();
+  Face[F]->UpdateTime(2020,5,1,0,8,5,48);
   
-  Face[0]->UpdateTime(2020,5,1,0,8,5,48);
-  Face[0]->ForceScreenRefresh();
 }
 
 void loop() {
@@ -36,7 +37,7 @@ void loop() {
   static uint8_t Day=1;
   static uint8_t DOW = 0;
   // put your main code here, to run repeatedly:
-  static uint8_t F=0;
+ 
   
   delay(10);
   second++;
@@ -48,9 +49,12 @@ void loop() {
       hour++;
       F++;
 
-      if(F >=  ( sizeof(Faces) / sizeof(Faces[0])  )   ){
+      if(F >=   3   ){
         F=0;
       }
+      Face[F]->ForceScreenRefresh();
+      Face[F]->UpdateTime(2020,5,1,0,8,5,48);
+      
 
       if(hour>=24){
         hour=0;
