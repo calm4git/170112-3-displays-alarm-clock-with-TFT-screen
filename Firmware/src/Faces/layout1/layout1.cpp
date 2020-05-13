@@ -1,6 +1,8 @@
 #include <TFTShape.h>
-#include "../Free_Fonts.h" // Include the header file attached to this sketch
+#include "../../../Free_Fonts.h" // Include the header file attached to this sketch
 #include "layout1.h"
+
+
 
 
 ClockLayout1::ClockLayout1( TFT_eSPI& lcd ){

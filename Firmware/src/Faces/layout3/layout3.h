@@ -1,9 +1,10 @@
 #ifndef __LAYOUT3_H__
  #define __LAYOUT3_H__
 
+#include "../faces.h"
 #include "TFT_eSPI.h"
 
- class ClockLayout3{
+ class ClockLayout3: public Faces{
 
     public:
         
@@ -12,6 +13,8 @@
         void UpdateTime( uint16_t year, uint8_t month, uint8_t day, uint8_t dow, uint8_t hour, uint8_t minute, uint8_t second );
         void UpdateAlarmInfo(bool Enabled, uint8_t dow, uint8_t hour, uint8_t minute);
         void ForceScreenRefresh( void );
+        uint32_t GetScreenHight( void ) { return 240; }
+        uint32_t GetScreenWidth( void ) { return 320; }
 
     private:
 
