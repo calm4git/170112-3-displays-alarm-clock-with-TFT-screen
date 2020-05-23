@@ -1,18 +1,10 @@
 #include <TimeLib.h>
+ #include <strings.h>
 #include "alarm.h"
 
         
     Alarm::Alarm( void ){
-            AlarmTime={.Hour=0,.Month=0,.Year=0,.Enabled=0,.OneShot=0,.UseDate=0,.Reserved=0,.IsRinging=0,
-                       .SnoozeCount=0,.Monday=0,.Thuseday=0,.Wednesday=0,.Tursday=0,.Friday=0,.Saturday=0,.Sunday=0};
-            _year=-1;
-            _month=-1;
-            _day=-1;
-            _dow=-1;
-            _hour=-1;
-            _minute=-1;
-            _second=-1;
-        
+            bzero((void*)(&AlarmTime), sizeof(AlarmTime) );
     }
 
     Alarm::~Alarm( void ){
@@ -23,7 +15,7 @@
         AlarmTime=Time;
     }
 
-    Alarmtime_t Alarm::GetAlarmTime( void ){
+    Alarm::Alarmtime_t Alarm::GetAlarmTime( void ){
         return AlarmTime;
     }
 
@@ -167,7 +159,7 @@
 
     
 
-    bool Alarm::CheckAlarmTime( uint16_t year, uint8_t month, uint8_t day, uint8_t dow, uint8_t hour, uint8_t minute, uint8_t second ){
+    bool Alarm::CheckAlarmTime( uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second ){
     
     
         bool ring = false;
@@ -183,7 +175,7 @@
         } else {
             timeelement.Year=0;
         }
-        time_t utc_timenow = makeTime();
+        time_t utc_timenow = makeTime(timeelement );
         timeelement.Wday = weekday( utc_timenow);
         CheckAlarmTime(utc_timenow, timeelement);
 
@@ -194,7 +186,7 @@
     
         bool ring = false;
         tmElements_t timeelement;
-        breakTime( utc_timenow, &timeelement);
+        breakTime( utc_timenow, timeelement);
         CheckAlarmTime(utc_timenow, timeelement);
 
     }
@@ -286,12 +278,34 @@
                     } else {
                         //We can skip the day
                     }
+                
                 }
+
+                //Last step is to check if any actives alarms are left
+                if(true == AlarmTime.OneShot){
+                    bool alarm_active = false;
+                    for(uint8_t i=0;i<7;i++){
+                        alarm_active = alarm_active | AlarmOnDOW(i);
+                    }
+                    if(false == alarm_active){
+                        AlarmTime.Enabled = false;
+                    }
+                }
+
+
             }
 
         } else {
             //We don't ring ....
         }
+
+        _lastCalled = utc_timenow;
+        if(true == ring ){
+            AlarmTime.IsRinging = true; //We note that this has been triggered
+            //If later an other alarm gets active we will put this one to sleep
+        }
+
+        return ring;
     }
     
      
