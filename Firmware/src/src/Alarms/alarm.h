@@ -32,9 +32,13 @@
             void SetAlarmTime( Alarmtime_t Time);
             Alarmtime_t GetAlarmTime( void );
             void ResetSnooze( void );
+            void QuitAlarm( void );
+            bool ActiveAlarm( void );
             bool SnoozeAlarm( void ); //If we have reached the snoozelimit ( 15 * 10 minutes we will ignore snooze )
+            time_t GetNextAlarmTime( time_t utc_now ); //Will return Zero if this one is disabled
             bool CheckAlarmTime( uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second ); 
-            bool CheckAlarmTime( time_t utc_timenow ); 
+            bool CheckAlarmTime( time_t utc_timenow );
+          
 
         private:
 

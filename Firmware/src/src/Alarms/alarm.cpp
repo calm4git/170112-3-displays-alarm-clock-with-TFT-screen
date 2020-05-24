@@ -19,6 +19,15 @@
         return AlarmTime;
     }
 
+    bool Alarm::ActiveAlarm( void ){
+        return AlarmTime.IsRinging;
+    }
+
+    void Alarm::QuitAlarm( void ){
+        AlarmTime.IsRinging = false;
+        AlarmTime.SnoozeCount=0;
+    }
+
     void Alarm::ResetSnooze( void ){
         AlarmTime.SnoozeCount=0;
 
@@ -161,8 +170,6 @@
 
     bool Alarm::CheckAlarmTime( uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second ){
     
-    
-        bool ring = false;
         tmElements_t timeelement;
 
         timeelement.Second = second;
@@ -177,17 +184,16 @@
         }
         time_t utc_timenow = makeTime(timeelement );
         timeelement.Wday = weekday( utc_timenow);
-        CheckAlarmTime(utc_timenow, timeelement);
+        return CheckAlarmTime(utc_timenow, timeelement);
 
 
     }
 
     bool Alarm::CheckAlarmTime( time_t utc_timenow  ){
     
-        bool ring = false;
         tmElements_t timeelement;
         breakTime( utc_timenow, timeelement);
-        CheckAlarmTime(utc_timenow, timeelement);
+        return CheckAlarmTime(utc_timenow, timeelement);
 
     }
 
@@ -221,7 +227,7 @@
                     alarmelement.Year = 0;
                 } 
 
-                utc_alarm = makeTime(  timeelement);
+                utc_alarm = makeTime(  alarmelement);
                 if(AlarmTime.SnoozeCount>0){
                     utc_alarm += 10*60*AlarmTime.SnoozeCount;
                 }
@@ -266,7 +272,7 @@
                         //We calculate the UTC time where it should ring....and we need to add the snozzetime....
                         uint32_t alarmseconds = ( AlarmTime.Second ) + ( AlarmTime.Minute*60 ) + (AlarmTime.Hour*3600)+(AlarmTime.SnoozeCount*10*60);
                         uint32_t alarmdayts = weekstart + alarmseconds + ( 60 * 60 * 24 * i );
-                        if( ( utc_alarm< utc_timenow ) && ( utc_alarm >= _lastCalled ) ){
+                        if( ( alarmdayts< utc_timenow ) && ( alarmdayts >= _lastCalled ) ){
                             ring = true;  
                             if(true == AlarmTime.OneShot){
                                 AlarmSetEnableDow(i,false);
@@ -309,27 +315,80 @@
     }
     
      
-    /*
-            typedef struct{
-                uint8_t Hour;
-                uint8_t Minute;
-                uint8_t Second;
-                uint8_t Day;
-                uint8_t Month;
-                uint16_t Year;
-                uint16_t Enabled:1;
-                uint16_t OneShot:1;
-                uint16_t UseDate:1;
-                uint16_t Reserved:2;
-                uint16_t IsRinging:1;
-                uint16_t SnoozeCount:3; //We allow 3Bit snoozecount = 7 times ! , snooze is fixed to 10 minutes!
-                uint16_t Monday:1;
-                uint16_t Thuseday:1;
-                uint16_t Wednesday:1;
-                uint16_t Tursday:1;
-                uint16_t Friday:1;
-                uint16_t Saturday:1;
-                uint16_t Sunday:1;
-            } Alarmtime_t;
-    */
-        
+time_t Alarm::GetNextAlarmTime( time_t utc_now ){
+
+    tmElements_t alarmelement;
+
+    time_t utc_alarm;
+    time_t nextalarm_time=0;
+
+
+    if(AlarmTime.Enabled>0){
+
+            
+            if( (AlarmTime.UseDate>0) ){ 
+                //If we use a defined date and / or need to take care for snoozetime
+                //Also every alarm that uses a given date is oneshot by default!
+                //We need to check for a given timestamp 
+                alarmelement.Hour = AlarmTime.Hour;
+                alarmelement.Minute = AlarmTime.Minute;
+                alarmelement.Second = AlarmTime.Second;
+                alarmelement.Day = AlarmTime.Day;
+                alarmelement.Month = AlarmTime.Day;
+                if(AlarmTime.Year>1970){
+                    alarmelement.Year = AlarmTime.Year-1970;
+                } else {
+                    alarmelement.Year = 0;
+                } 
+
+                utc_alarm = makeTime(  alarmelement);
+                if(AlarmTime.SnoozeCount>0){
+                    utc_alarm += 10*60*AlarmTime.SnoozeCount;
+                }
+
+                if(utc_now < utc_alarm){
+                    //The alarm is in the future so we can return a timespan
+                    nextalarm_time=utc_alarm;
+                } else {
+                    //Alarm is in the past for what ever reason
+                    nextalarm_time=0;
+                }
+
+            } else {
+               
+                time_t daystart=previousMidnight(utc_now);//Currentday 00:00:00
+                //This is a bit tricky.... sort of...
+                for(uint8_t i=0;i<7;i++){
+                    uint8_t DOW = ( dayOfWeek(daystart + ( SECS_PER_DAY * i) ) ) ;
+                    //DOW starts with 1 for sunday we start with 0 on Monday
+                    if(1==DOW){
+                        DOW=6;
+                    } else {
+                        DOW=DOW-2;
+                    }
+
+                    if( true == AlarmOnDOW(DOW) ){
+                        
+                        //We calculate the UTC time where it should ring....and we need to add the snozzetime....
+                        uint32_t alarmseconds = ( AlarmTime.Second ) + ( AlarmTime.Minute*60 ) + (AlarmTime.Hour*3600)+(AlarmTime.SnoozeCount*10*60);
+                        uint32_t alarmtimeofday = daystart + ( SECS_PER_DAY * i)+alarmseconds;
+
+                        if(alarmtimeofday>utc_now){
+                            //Okay it's on this day
+                            nextalarm_time=alarmtimeofday;
+                            break;
+                        } else {
+                            //Alert is active and seems to be on this day but passed...
+                            uint32_t seconds_passed = ( utc_now - alarmtimeofday );
+                            nextalarm_time = SECS_PER_WEEK - seconds_passed;
+                        }
+                        
+                    }
+                
+                }
+            }
+        } else {
+             nextalarm_time=0;
+        }
+        return nextalarm_time; 
+    }
