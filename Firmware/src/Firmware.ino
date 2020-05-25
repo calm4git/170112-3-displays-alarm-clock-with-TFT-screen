@@ -29,12 +29,69 @@ void setup() {
   lcd.fillScreen(TFT_BLACK);
   F=2;
   Face[F]->ForceScreenRefresh();
-  tm.Hour=8;
-  tm.Minute=5;
+  tm.Hour=23;
+  tm.Minute=54;
   tm.Second=48;
   tm.Year=(2020-1970);
   utc_now = makeTime(tm);
   Face[F]->UpdateTime(utc_now);
+  Alarms.EnableAlarms();
+  Alarm::Alarmtime_t At;
+  
+  At.Day=0;
+  At.IsRinging=0;
+  
+  At.Hour=8;
+  At.Minute=22;
+  At.Second=5;
+  
+  At.OneShot=0;
+  At.Monday=1;
+  
+  At.UseDate=0;
+  At.Year=2019;
+  At.Enabled = 1;
+
+  Alarms.SetAlarm(0,At);
+  //We will set the alarm 
+
+  At.Day=0;
+  At.IsRinging=0;
+  
+  At.Hour=9;
+  At.Minute=11;
+  At.Second=2;
+  
+  At.OneShot=0;
+  At.Monday=0;
+  At.Wednesday=1;
+  At.Friday=0;
+
+  At.UseDate=0;
+  At.Year=2019;
+  At.Enabled = 1;
+
+  Alarms.SetAlarm(1,At);
+  
+
+  At.Day=0;
+  At.IsRinging=0;
+  
+  At.Hour=10;
+  At.Minute=01;
+  At.Second=01;
+  
+  At.OneShot=0;
+  At.Monday=0;
+  At.Wednesday=1;
+  At.Friday=1;
+
+  At.UseDate=0;
+  At.Year=2019;
+  At.Enabled = 1;
+
+  Alarms.SetAlarm(2,At);
+  
   
 }
 
@@ -47,12 +104,12 @@ void loop() {
    
   
   
- 
-  delay(10);
-  utc_now++;
+  delay(2);
+  //increase time and let the display draw
+  utc_now+=20;
   ft++;
   Alarms.CheckAlarms(utc_now);
-  if( ft> 15*60 ){
+  if( ft> 340*60 ){
       F++;
       ft=0;
       if(F >=   3   ){
@@ -63,28 +120,21 @@ void loop() {
   }
 
   ticks++;
-
-
-  if(ticks==50){
-    utc_now+=SECS_PER_DAY;
+  
+  if(true==Alarms.CheckAlarms(utc_now)){
+    //We need to ring 
+    Serial.printf("Ring Ring @ %u \n\r",utc_now );
+  }
+  Alarm* Al_Ptr=NULL;
+  if(true == Alarms.GetNextAlarm(&Al_Ptr,utc_now)){
+    time_t altime = Al_Ptr->GetNextAlarmTime(utc_now);
+    Face[F]->UpdateAlarmInfo(true,altime);
+  } else {
+    Face[F]->UpdateAlarmInfo(false,0);
   }
   
-  if(ticks==190){
-     utc_now+=SECS_PER_WEEK*4;
-  }
-
-
-  //increase time and let the display draw
   Face[F]->UpdateTime(utc_now);
-  if(ticks<100){
-    Face[F]->UpdateAlarmInfo(false,  2,  9,  6);
-  } else {
-    Face[F]->UpdateAlarmInfo(true,  2,  9,  6);
-    if(ticks>200){
-      ticks=0;
-    }
-  }
-
+  
   
 
 

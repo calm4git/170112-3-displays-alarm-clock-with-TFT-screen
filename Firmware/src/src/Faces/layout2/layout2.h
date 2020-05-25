@@ -31,7 +31,7 @@
     void Points9(uint16_t Numdigit, uint16_t Color);
     void PointsColumn( void );
     void fillArc(int x, int y, int start_angle, int seg_count, int rx, int ry, int w, unsigned int colour);
-    void DrawSeconds(uint8_t seconds, uint16_t color);
+    void DrawSeconds(uint8_t seconds, uint16_t color, bool redraw);
     void DrawAlarmONOFF( bool ON );
     void DrawAlarmNEXT( uint8_t hour, uint8_t minute, uint8_t dow, bool clear );
     void DrawDate( uint16_t year, uint8_t month, uint8_t day, uint8_t dow );
@@ -40,6 +40,7 @@
     int8_t unitH_Prev;
     int8_t dozenM_Prev;
     int8_t unitM_Prev;
+    int8_t unitS_Prev;
 
     int16_t Year_Prev;
     int8_t Month_Prev;

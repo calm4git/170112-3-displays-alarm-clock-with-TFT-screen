@@ -8,6 +8,7 @@ ClockLayout2::ClockLayout2( TFT_eSPI& lcd ){
    unitH_Prev=-1;
    dozenM_Prev=-1;
    unitM_Prev=-1;
+     PointDrawn=-1;
    PointDrawn=-1; 
 
    Year_Prev=-1;
@@ -29,6 +30,7 @@ void ClockLayout2::ForceScreenRefresh( void ){
    unitH_Prev=-1;
    dozenM_Prev=-1;
    unitM_Prev=-1;
+   unitS_Prev=-1;
    PointDrawn=-1; 
 
    Year_Prev=-1;
@@ -98,28 +100,30 @@ void ClockLayout2::ForceScreenRefresh( void ){
         PointsHelper(unitM,Numdigit,_lcd->color565(127,127,255) );
         unitM_Prev = unitM;
     }
-  
-    switch( (minute%4) ){
-        case 0:{
-                DrawSeconds(second, _lcd->color565(253,0,0)); //RED
-        } break;
+    if(unitS_Prev!=second){
+      switch( (minute%4) ){
+          case 0:{
+                  DrawSeconds(second, _lcd->color565(253,0,0), ( unitS_Prev<0 )); //RED
+          } break;
 
-        case 1:{
-                DrawSeconds(second,  _lcd->color565(0,255,0)); //GREEN              
-        } break;
+          case 1:{
+                  DrawSeconds(second,  _lcd->color565(0,255,0),( unitS_Prev<0 )); //GREEN              
+          } break;
 
-        case 2:{
-            DrawSeconds(second, _lcd->color565(63,63,255)); //BLUE
-        } break;
+          case 2:{
+              DrawSeconds(second, _lcd->color565(63,63,255),( unitS_Prev<0 )); //BLUE
+          } break;
 
-        case 3:{
-            DrawSeconds(second, 0x7BEF); //GREY
-        } break;
+          case 3:{
+              DrawSeconds(second, 0x7BEF, ( unitS_Prev<0 )); //GREY
+          } break;
 
-        default:{
-            DrawSeconds(second, 0x7BEF); //GREY
-        } break;
+          default:{
+              DrawSeconds(second, 0x7BEF,( unitS_Prev<0 )); //GREY
+          } break;
 
+      }
+      unitS_Prev=second;
     }
 
   if(true == RedrawAlarm){
@@ -320,12 +324,17 @@ void ClockLayout2::fillArc(int x, int y, int start_angle, int seg_count, int rx,
   }
 }
 
-void ClockLayout2::DrawSeconds(uint8_t seconds, uint16_t color){
+
+void ClockLayout2::DrawSeconds(uint8_t seconds, uint16_t color, bool redraw){
   seconds++; //We will run from 1 to 60;
   if(seconds>60){
     seconds=60;
   }
-  fillArc(58,188,0, seconds ,45,45,8,color);
+  if(false == redraw){
+    fillArc(58,188,6*seconds, 1 ,45,45,8,color);
+  } else {
+    fillArc(58,188,0, seconds ,45,45,8,color);
+  }
 }
 
 void ClockLayout2::DrawAlarmONOFF( bool ON ){

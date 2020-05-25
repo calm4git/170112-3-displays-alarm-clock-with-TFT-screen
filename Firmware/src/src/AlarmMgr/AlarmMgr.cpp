@@ -39,13 +39,26 @@ void AlarmMgr::QuitAlarms( void ){
 
 }
 
-bool AlarmMgr::SetAlarm( uint8_t idx, Alarm* Al ){
-    return false;
+bool AlarmMgr::SetAlarm( uint8_t idx, Alarm::Alarmtime_t Al ){
+
+   if(idx<ALARMCOUNT){
+       UserAlarms[idx].SetAlarmTime( Al );
+       return true;
+   } else {
+       return false;
+   }
 
 }
 
-bool AlarmMgr::GetAlarm( uint8_t idx, Alarm** Al ){
-    return false;
+bool AlarmMgr::GetAlarm( uint8_t idx, Alarm::Alarmtime_t* Al ){
+    
+    if(idx<ALARMCOUNT){
+       *Al=UserAlarms[idx].GetAlarmTime();
+       return true;
+   } else {
+       return false;
+   }
+
 }
 
 //This will return the next Alarm that is active 
@@ -55,13 +68,15 @@ bool AlarmMgr::GetNextAlarm(Alarm** Al, time_t utc_now ){
     bool foundalarm=false;
     
     for(uint8_t i=0;i<ALARMCOUNT;i++){
-        getnextalarmtime=UserAlarms[i].GetNextAlarmTime( utc_now );
-        if(min_distance>0){
-            if(min_distance > (getnextalarmtime - utc_now) ){
-            
-                min_distance = (getnextalarmtime - utc_now);
-                *Al = &UserAlarms[i];
-                foundalarm=true;
+        if(false != UserAlarms[i].GetAlarmEnabled() ){
+            getnextalarmtime=UserAlarms[i].GetNextAlarmTime( utc_now );
+            if(min_distance>0){
+                if(min_distance > (getnextalarmtime - utc_now) ){
+                
+                    min_distance = (getnextalarmtime - utc_now);
+                    *Al = &UserAlarms[i];
+                    foundalarm=true;
+                }
             }
         }
     }
@@ -88,7 +103,7 @@ void AlarmMgr::SnoozeAlarm( time_t utc_now ){
 
         if(true == is_ringing){
             //We will only snooze if we have an active alarm....
-            snooze_until = utc_now + ( ringduration * 60 ) ;
+            snooze_until = utc_now + ( ringduration ) ;
             snooze=true;
         }
 
@@ -140,6 +155,7 @@ bool AlarmMgr::CheckAlarms( time_t utc_now ){
     for(uint8_t i=0;i<ALARMCOUNT;i++){
        if(true == UserAlarms[i].CheckAlarmTime( utc_now ) ){
          ring = true;
+         Serial.printf("Alarm %u rings", i);
        }
     }
 
@@ -149,9 +165,11 @@ bool AlarmMgr::CheckAlarms( time_t utc_now ){
         snooze_until=0;
         snooze = false;
         ringing=true;
+        Serial.println("Enable Alarm");
     } else {
         //We can check if we still need to ring
         if(true == snooze ){
+            Serial.println("Snoozze");
             if(snooze_until < utc_now){
                 //snooze is over 
                 ring_start = utc_now;
@@ -160,7 +178,7 @@ bool AlarmMgr::CheckAlarms( time_t utc_now ){
                 ringing=false;
             }
         } else {
-            if(ring_start + ( ringduration *60 ) < utc_now){
+            if( ( is_ringing == true ) && ( (ring_start +  ringduration    )< utc_now) ){
                 //We will stop ringing! Active alarms will be disabled
                 for(uint8_t i=0;i<ALARMCOUNT;i++){
                     UserAlarms[i].QuitAlarm(); //We stop any ringing...
@@ -169,8 +187,11 @@ bool AlarmMgr::CheckAlarms( time_t utc_now ){
                 snooze_until=0;
                 snooze = false;
                 ringing=false;
+                Serial.println("Disable Ring");
             } else {
-                ringing=true;
+                if(is_ringing == true){
+                    ringing=true;
+                }
             } 
         }
     }           

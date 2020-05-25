@@ -29,8 +29,24 @@
             Alarm( void );
             ~Alarm( void );
 
+            void SetAlarmEnabled(bool ena) { AlarmTime.Enabled = ena; };
+            bool GetAlarmEnabled( void){ return ( AlarmTime.Enabled > 0); }
+
+            void SetAlarmOneShot( bool oneshot){ AlarmTime.OneShot = oneshot; };
+            bool GetAlarmOneShot( void ){ return (AlarmTime.OneShot>0 );   };
+
+            void SetAlarmDate(uint16_t Year, uint8_t Month, uint8_t Day );
+            void SetAlarmTime(uint8_t Hour, uint8_t Minute,uint8_t Second);
+            void SetRecouringAlarm( bool Monday, bool Thuseday, bool Wednesday, bool Tursday, bool Friday, bool Saturday, bool Sunday );
+
+
+
+
             void SetAlarmTime( Alarmtime_t Time);
             Alarmtime_t GetAlarmTime( void );
+
+
+
             void ResetSnooze( void );
             void QuitAlarm( void );
             bool ActiveAlarm( void );

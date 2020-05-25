@@ -1,5 +1,6 @@
 #include <TimeLib.h>
  #include <strings.h>
+ #include <Arduino.h>
 #include "alarm.h"
 
         
@@ -12,7 +13,10 @@
     }
 
     void Alarm::SetAlarmTime( Alarmtime_t Time){
+        /* saintiy check ?*/
+        
         AlarmTime=Time;
+
     }
 
     Alarm::Alarmtime_t Alarm::GetAlarmTime( void ){
@@ -265,17 +269,28 @@
                 //We know the last time this function was called and also 
                 breakTime( _lastCalled, _lastCalledElement);
                 //We calculate the timestamp for each day that may be enabled....
-                time_t weekstart=previousSunday(utc_timenow)+SECS_PER_DAY;//Monday 00:00:00
+                time_t daystart=previousMidnight(utc_timenow);//Currentday 00:00:00
+                //This is a bit tricky.... sort of...
                 for(uint8_t i=0;i<7;i++){
-                    if( true == AlarmOnDOW(i) ){
+                    uint8_t DOW = ( dayOfWeek(daystart + ( SECS_PER_DAY * i) ) ) ;
+                    //DOW starts with 1 for sunday we start with 0 on Monday
+                    if(1==DOW){
+                        DOW=6;
+                    } else {
+                        if(DOW!=0){
+                            DOW=DOW-2;
+                        }
+                    }
+
+                    if( true == AlarmOnDOW(DOW) ){
                         
                         //We calculate the UTC time where it should ring....and we need to add the snozzetime....
                         uint32_t alarmseconds = ( AlarmTime.Second ) + ( AlarmTime.Minute*60 ) + (AlarmTime.Hour*3600)+(AlarmTime.SnoozeCount*10*60);
-                        uint32_t alarmdayts = weekstart + alarmseconds + ( 60 * 60 * 24 * i );
+                        uint32_t alarmdayts = daystart + ( SECS_PER_DAY * i) + alarmseconds;
                         if( ( alarmdayts< utc_timenow ) && ( alarmdayts >= _lastCalled ) ){
                             ring = true;  
                             if(true == AlarmTime.OneShot){
-                                AlarmSetEnableDow(i,false);
+                                AlarmSetEnableDow(DOW,false);                               
                             }
                         } else {
                             //Not this day....
@@ -352,10 +367,11 @@ time_t Alarm::GetNextAlarmTime( time_t utc_now ){
                 } else {
                     //Alarm is in the past for what ever reason
                     nextalarm_time=0;
+                    Serial.println("Alarm in the past, Date given");
                 }
 
             } else {
-               
+              
                 time_t daystart=previousMidnight(utc_now);//Currentday 00:00:00
                 //This is a bit tricky.... sort of...
                 for(uint8_t i=0;i<7;i++){
@@ -372,7 +388,6 @@ time_t Alarm::GetNextAlarmTime( time_t utc_now ){
                         //We calculate the UTC time where it should ring....and we need to add the snozzetime....
                         uint32_t alarmseconds = ( AlarmTime.Second ) + ( AlarmTime.Minute*60 ) + (AlarmTime.Hour*3600)+(AlarmTime.SnoozeCount*10*60);
                         uint32_t alarmtimeofday = daystart + ( SECS_PER_DAY * i)+alarmseconds;
-
                         if(alarmtimeofday>utc_now){
                             //Okay it's on this day
                             nextalarm_time=alarmtimeofday;
@@ -389,6 +404,51 @@ time_t Alarm::GetNextAlarmTime( time_t utc_now ){
             }
         } else {
              nextalarm_time=0;
+            Serial.println("Alarm not Enabled");
         }
         return nextalarm_time; 
     }
+
+void Alarm::SetAlarmDate(uint16_t Year, uint8_t Month, uint8_t Day ){
+    AlarmTime.UseDate = 1;
+    AlarmTime.Year = Year;
+    if(Month>=13){
+        Month = 12;
+    }
+    AlarmTime.Month = Month;
+    if(Day>=31){
+        Day=31;
+    }
+    AlarmTime.Day = Day;
+}
+void Alarm::SetAlarmTime(uint8_t Hour, uint8_t Minute,uint8_t Second){
+    if(Hour>23){
+        Hour=23;
+    }
+    AlarmTime.Hour = Hour;
+    
+    if(Minute>59){
+        Minute = 59;
+    }
+    AlarmTime.Minute = Minute;
+
+    if(Second>59){
+        Second = 59;
+    }
+    AlarmTime.Second = Second;
+
+
+
+
+}
+void Alarm::SetRecouringAlarm( bool Monday, bool Thuseday, bool Wednesday, bool Tursday, bool Friday, bool Saturday, bool Sunday ){
+    AlarmTime.UseDate=0;
+    AlarmTime.Monday= ( 1 & Monday );
+    AlarmTime.Thuseday = ( 1 & Thuseday );
+    AlarmTime.Wednesday =( 1 & Wednesday );
+    AlarmTime.Tursday = ( 1 & Thuseday );
+    AlarmTime.Friday = ( 1 & Friday );
+    AlarmTime.Saturday = ( 1 & Saturday );
+    AlarmTime.Sunday = ( 1 & Sunday );
+
+}

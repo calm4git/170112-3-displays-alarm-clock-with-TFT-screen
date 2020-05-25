@@ -14,9 +14,10 @@
             AlarmMgr( void );
             void SetRingDuration(uint32_t duration_m);
             uint32_t GetRingDuration( void );
-            bool SetAlarm( uint8_t idx, Alarm* Al );
+            
+            bool SetAlarm( uint8_t idx, Alarm::Alarmtime_t Al );
+            bool GetAlarm( uint8_t idx, Alarm::Alarmtime_t* Al );
 
-            bool GetAlarm( uint8_t idx, Alarm** Al );
             bool GetNextAlarm(Alarm** Al, time_t utc_now ); //This will return the next Alarm that is active 
             bool GetCurrentAlarm(Alarm** Al ); //If something is ringing this will return the entry....
             
