@@ -115,6 +115,11 @@
     }
 
     bool Alarm::AlarmOnDOW(uint8_t dow){
+        return Alarm::AlarmGetEnableDow(dow, AlarmTime);
+    }
+
+    //Static function
+    bool Alarm::AlarmGetEnableDow(uint8_t dow,Alarmtime_t AlarmTime){
         bool alarmonday=false;
         switch(dow){
 

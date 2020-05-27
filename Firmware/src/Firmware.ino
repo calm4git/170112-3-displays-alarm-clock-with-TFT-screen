@@ -242,7 +242,8 @@ void RenderAlarmMenuEntry( uint32_t offset, bool selected,  Alarm::Alarmtime_t A
   }
 }
 
-void TestRenderMenuAlarms( uint8_t selected_idx){
+void TestRenderMenuAlarms( uint8_t selected_idx ){
+
   Alarm::Alarmtime_t At ;
   /* Draw Headline */
   lcd.fillRect(0,0,320,40,lcd.color565( 45,47,50 ) );
@@ -280,6 +281,146 @@ void TestRenderMenuAlarms( uint8_t selected_idx){
 }
 
 
+//----------------- Alarm Settings ----------------------------------- //
+
+void DrawStatusWeekday(uint16_t offset_x, uint16_t offset_y,uint8_t Dow, bool Enabled ){
+  lcd.setCursor(10+offset_x,55+offset_y);
+  lcd.setTextColor(TFT_BLACK ,TFT_BLACK);
+  lcd.setFreeFont(FSB9); 
+  switch(Dow){
+    case 0:{
+      lcd.print("Mo");
+    } break;   
+
+    case 1:{
+      lcd.print("Tu");
+    } break;   
+
+    case 2:{
+      lcd.print("We");
+    } break;   
+
+    case 3:{
+      lcd.print("Th");
+    } break;   
+
+    case 4:{
+      lcd.print("Fr");
+    } break;   
+
+    case 5:{
+      lcd.print("Sa");
+    } break;   
+
+    case 6:{
+      lcd.print("Su");
+    } break;   
+
+  }
+  
+  lcd.drawRect(10+offset_x,60+offset_y,25,25,TFT_BLACK);
+  //This will build the checked image in green 
+  if(true == Enabled){
+    for(uint8_t i=0;i<6;i++) {
+      lcd.drawLine(12+i+offset_x,71+offset_y,20+i+offset_x,80+offset_y,TFT_GREEN);
+    }
+    for(uint8_t i=0;i<6;i++){
+      lcd.drawLine(25-i+offset_x,80+offset_y,32-(i/3)+offset_x,63+offset_y, TFT_GREEN);
+    }
+  } else {
+    for(uint8_t i=0;i<6;i++){
+      lcd.drawLine(14+i+offset_x,64+offset_y,31-i+offset_x,81+offset_y, TFT_RED);
+      lcd.drawLine(14+i+offset_x,81+offset_y,31-i+offset_x,64+offset_y, TFT_RED);
+    }
+  }
+
+}
+
+void DrawAlarmEnabled(uint16_t offset_x,uint16_t offset_y ,bool Ena){
+
+  lcd.drawRect(10+offset_x,50+offset_y,25,25,TFT_BLACK);
+  //This will build the checked image in green 
+  if(true == Ena){
+    for(uint8_t i=0;i<6;i++) {
+      lcd.drawLine(12+i+offset_x,61+offset_y,20+i+offset_x,70+offset_y,TFT_GREEN);
+    }
+    for(uint8_t i=0;i<6;i++){
+      lcd.drawLine(25-i+offset_x,70+offset_y,32-(i/3)+offset_x,53+offset_y, TFT_GREEN);
+    }
+  } else {
+    
+  }
+
+  lcd.setCursor(46+offset_x,70+offset_y);
+  lcd.setTextColor(TFT_BLACK ,TFT_BLACK);
+  lcd.setFreeFont(FSB12); 
+  lcd.print("Enabled");
+}
+
+void DrawAlarmTimeHHMM(uint16_t offset_x,uint16_t offset_y, uint8_t hours, uint8_t minutes){
+
+  lcd.setCursor(10+offset_x,80+offset_y);
+  lcd.setTextColor(TFT_BLACK ,TFT_BLACK);
+  lcd.setFreeFont(FSB24); 
+  if(hours<10){
+    lcd.print("0");
+  }
+  lcd.print(hours);
+  lcd.print(":");
+  if(minutes<10){
+    lcd.print("0");
+  }
+  lcd.print(minutes);
+
+}
+
+void DrawOneShot(uint16_t offset_x,uint16_t offset_y ,bool Ena){
+
+  lcd.drawRect(10+offset_x,50+offset_y,25,25,TFT_BLACK);
+  //This will build the checked image in green 
+  if(true == Ena){
+    for(uint8_t i=0;i<6;i++) {
+      lcd.drawLine(12+i+offset_x,61+offset_y,20+i+offset_x,70+offset_y,TFT_GREEN);
+    }
+    for(uint8_t i=0;i<6;i++){
+      lcd.drawLine(25-i+offset_x,70+offset_y,32-(i/3)+offset_x,53+offset_y, TFT_GREEN);
+    }
+  } else {
+    
+  }
+
+  lcd.setCursor(46+offset_x,70+offset_y);
+  lcd.setTextColor(TFT_BLACK ,TFT_BLACK);
+  lcd.setFreeFont(FSB12); 
+  lcd.print("Only Once");
+}
+
+void TestRenderAlarmSetup(  Alarm::Alarmtime_t At ){
+
+  
+  
+  /* Draw Headline */
+  lcd.fillRect(0,0,320,40,lcd.color565( 45,47,50 ) );
+  
+  lcd.setTextColor(lcd.color565( 112,116,122 ),TFT_BLACK);
+  lcd.setFreeFont(FSB18); 
+  lcd.setCursor(160- ( lcd.textWidth("Alarm settings") / 2) ,30);
+  lcd.print("Alarm settings");
+  lcd.fillRect(0,40,320,200,lcd.color565( 112,116,122 ));
+  
+  /* This will be for one day */
+  DrawAlarmEnabled(0,0,At.Enabled);
+    if(true==At.Enabled){
+      for(uint8_t i=0;i<7;i++){
+        
+        DrawStatusWeekday(45+i*35,40,i,Alarm::AlarmGetEnableDow(i,At));
+      }
+      DrawOneShot(0,85,At.OneShot);
+    }
+  
+  DrawAlarmTimeHHMM(40,130,At.Hour ,At.Minute );
+
+}
 
 
 void setup() {
@@ -291,6 +432,13 @@ void setup() {
   lcd.fillScreen(TFT_BLACK);
   
   setup_clock();
+
+   {
+    Alarm::Alarmtime_t At ;
+    if(true == Alarms.GetAlarm(0,&At) ){
+        TestRenderAlarmSetup( At );
+    }
+ }
 
   
   
@@ -330,17 +478,32 @@ void UpdateClock( time_t utc_now ){
 void loop() {
   //We run only once a second to update the alarms and display if the second updated....
   //increase time and let the display draw
+  Alarm::Alarmtime_t At;
+  static uint32_t utc_now=SECS_YR_2000+(SECS_PER_YEAR*19)+999;
   for(uint8_t i=0;i<7;i++){
     TestRenderMenuAlarms( i );
-    delay(500);
+    delay(750);
+    if(true == Alarms.GetAlarm(i,&At) ){
+      TestRenderAlarmSetup( At);
+      delay(1000);
+    }
+    
+    
   }
 
   for(uint8_t i=0;i<7;i++){
     TestRenderMenuAlarms( 7-i );
     delay(500);
+    
+    
   }
- 
-
+  Face[F]->ForceScreenRefresh();
+  
+  for(uint32_t t=0;t<(60*60*2);t++){
+    utc_now+=30;
+    UpdateClock(utc_now);
+    delay(10);
+  }
   
   
 

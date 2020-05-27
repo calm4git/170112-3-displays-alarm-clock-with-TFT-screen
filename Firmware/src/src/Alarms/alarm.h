@@ -54,7 +54,8 @@
             time_t GetNextAlarmTime( time_t utc_now ); //Will return Zero if this one is disabled
             bool CheckAlarmTime( uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second ); 
             bool CheckAlarmTime( time_t utc_timenow );
-          
+
+            static bool AlarmGetEnableDow( uint8_t dow, Alarmtime_t At);
 
         private:
 
@@ -64,7 +65,7 @@
             bool CheckAlarmTime( time_t utc_timenow, tmElements_t timeelement ); 
             bool AlarmOnDOW(uint8_t dow);
             void AlarmSetEnableDow( uint8_t dow, bool ena);
-        
+
 
 
     };
