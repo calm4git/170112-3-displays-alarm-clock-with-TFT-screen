@@ -12,6 +12,15 @@
 
     }
 
+    void Alarm::SetCallBack(void (*callback_ptr)(void) ){
+        AlarmTime.callback_ptr = callback_ptr;
+    }
+
+    void Alarm::ClearCallBack( void ){
+            AlarmTime.callback_ptr = nullptr;
+    }
+
+
     void Alarm::SetAlarmTime( Alarmtime_t Time){
         /* saintiy check ?*/
         
@@ -119,7 +128,7 @@
     }
 
     //Static function
-    bool Alarm::AlarmGetEnableDow(uint8_t dow,Alarmtime_t AlarmTime){
+    bool Alarm::AlarmGetEnableDow(uint8_t dow,Alarmtime_t &AlarmTime){
         bool alarmonday=false;
         switch(dow){
 
@@ -173,6 +182,78 @@
 
         return alarmonday;
 
+    }
+
+    void Alarm::AlarmSetEnableDow( uint8_t dow, bool ena, Alarmtime_t &AlarmTime){
+        switch(dow){
+
+            case 0:{
+                if(false == ena ){
+                    AlarmTime.Monday=0;
+                } else {
+                    AlarmTime.Monday=1;
+                }
+            } break;
+
+            case 1:{
+                if(false == ena ){
+                    AlarmTime.Thuseday=0;
+                } else {
+                    AlarmTime.Thuseday=1;
+                }
+
+            } break;
+
+            case 2:{
+                if(false == ena ){
+                    AlarmTime.Wednesday=0;
+                } else {
+                    AlarmTime.Wednesday=1;
+                }
+            } break;
+
+            case 3:{
+                if(false == ena ){
+                    AlarmTime.Tursday=0;
+                } else {
+                    AlarmTime.Tursday=1;
+                }
+            } break;
+
+            case 4:{
+                if(false == ena ){
+                    AlarmTime.Friday=0;
+                } else {
+                    AlarmTime.Friday=1;
+                }
+            } break;
+
+            case 5:{
+                if(false == ena ){
+                    AlarmTime.Saturday=0;
+                } else {
+                    AlarmTime.Saturday=1;
+                }
+            } break;
+
+            case 6:{
+                if(false == ena ){
+                    AlarmTime.Sunday=0;
+                } else {
+                    AlarmTime.Sunday=1;
+                }
+
+            } break;
+
+            default:{
+                
+            }break;
+        }
+    }
+
+    void Alarm::AlarmToggleEnabledDow( uint8_t dow, Alarmtime_t &At){
+         bool ena = Alarm::AlarmGetEnableDow(dow,At);
+         Alarm::AlarmSetEnableDow( dow, !ena, At);
     }
 
     
@@ -327,11 +408,17 @@
 
         _lastCalled = utc_timenow;
         if(true == ring ){
+            if(false == AlarmTime.IsRinging){
+                if( AlarmTime.callback_ptr != nullptr ){
+                    AlarmTime.callback_ptr();
+                }
+            }
             AlarmTime.IsRinging = true; //We note that this has been triggered
             //If later an other alarm gets active we will put this one to sleep
         }
 
-        return ring;
+       
+        return ring; 
     }
     
      

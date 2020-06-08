@@ -30,6 +30,8 @@
 
             bool CheckAlarms( time_t utc_now ); //This will check all alarms and also handle the timeout, returns true if it needs to ring
 
+            uint8_t GetMaxAlarms( void );
+
         private:
             //Internally stored user alarms 
             

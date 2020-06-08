@@ -197,3 +197,7 @@ bool AlarmMgr::CheckAlarms( time_t utc_now ){
     }           
     return ringing;
 } 
+
+uint8_t AlarmMgr::GetMaxAlarms( void ){
+    return ALARMCOUNT;
+}

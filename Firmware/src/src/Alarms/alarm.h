@@ -24,10 +24,14 @@
                 uint16_t Friday:1;
                 uint16_t Saturday:1;
                 uint16_t Sunday:1;
+                void (*callback_ptr)(void); //This is a function pointer called when the alarm rings and need static or c code
             } Alarmtime_t;
             
             Alarm( void );
             ~Alarm( void );
+
+            void SetCallBack(void (*callback_ptr)(void) );
+            void ClearCallBack( void );
 
             void SetAlarmEnabled(bool ena) { AlarmTime.Enabled = ena; };
             bool GetAlarmEnabled( void){ return ( AlarmTime.Enabled > 0); }
@@ -55,7 +59,9 @@
             bool CheckAlarmTime( uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second ); 
             bool CheckAlarmTime( time_t utc_timenow );
 
-            static bool AlarmGetEnableDow( uint8_t dow, Alarmtime_t At);
+            static bool AlarmGetEnableDow( uint8_t dow, Alarmtime_t &At);
+            static void AlarmSetEnableDow( uint8_t dow, bool ena, Alarmtime_t &AlarmTime);
+            static void AlarmToggleEnabledDow( uint8_t dow, Alarmtime_t &At);
 
         private:
 

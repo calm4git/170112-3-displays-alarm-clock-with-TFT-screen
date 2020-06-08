@@ -333,7 +333,10 @@ void ClockLayout2::DrawSeconds(uint8_t seconds, uint16_t color, bool redraw){
   if(false == redraw){
     fillArc(58,188,6*seconds, 1 ,45,45,8,color);
   } else {
-    fillArc(58,188,0, seconds ,45,45,8,color);
+    for(uint8_t s = 1; s <= seconds;s++){
+      fillArc(58,188,6*s, 1 ,45,45,8,color);
+    }
+    
   }
 }
 

@@ -31,7 +31,7 @@ void ClockLayout1::UpdateTime( uint16_t year, uint8_t month, uint8_t day, uint8_
     if(second_pev<0){
         for(uint8_t idx=0;idx<12;idx++){
             
-            if( ( (minute%2)==0 )  ){ 
+            if( ( (minute%2)!=0 )  ){ 
                 if(second < ( idx * 5 ) ){
                     _lcd->fillCircle(CosTable[idx]+x1M, SinTable[idx]+y1M, 7,_lcd->color565(31, 31, 255));
                 } else {
